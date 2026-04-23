@@ -1,0 +1,625 @@
+/* ============================================================
+   DIB (Dubai Islamic Bank) Branding Stylesheet
+   SharePoint Server Subscription Edition
+   ============================================================ */
+
+/* ---- CSS Variables (DIB Brand Colors) ---- */
+:root {
+    --dib-primary: #005B3A;        /* DIB Green */
+    --dib-primary-dark: #003D27;
+    --dib-primary-light: #007A4E;
+    --dib-secondary: #C8A951;      /* DIB Gold */
+    --dib-secondary-dark: #A68B3C;
+    --dib-secondary-light: #E0C56A;
+    --dib-accent: #1A7A5C;
+    --dib-white: #FFFFFF;
+    --dib-off-white: #F7F9F8;
+    --dib-light-gray: #E8EDEB;
+    --dib-medium-gray: #9BADA3;
+    --dib-dark-gray: #4A5A53;
+    --dib-text: #1E2D26;
+    --dib-text-light: #6B7C73;
+    --dib-danger: #D32F2F;
+    --dib-warning: #F9A825;
+    --dib-success: #2E7D32;
+    --dib-info: #1565C0;
+    --dib-shadow: 0 2px 8px rgba(0, 91, 58, 0.12);
+    --dib-shadow-lg: 0 4px 20px rgba(0, 91, 58, 0.18);
+    --dib-radius: 6px;
+    --dib-radius-lg: 10px;
+    --dib-transition: all 0.25s ease;
+    --dib-font: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --dib-font-arabic: 'Dubai', 'Segoe UI', 'Arial', sans-serif;
+    --dib-sidebar-width: 260px;
+    --dib-header-height: 70px;
+    --dib-topbar-height: 36px;
+}
+
+/* ---- Reset & Base (scoped to DIB elements) ---- */
+#dib-top-bar,
+#dib-header,
+#dib-footer,
+.dib-notification-panel,
+.dib-sidebar {
+    font-family: var(--dib-font);
+    color: var(--dib-text);
+    line-height: 1.6;
+}
+
+/* Scope box-sizing to DIB elements only */
+#dib-top-bar,
+#dib-top-bar *,
+#dib-header,
+#dib-header *,
+#dib-footer,
+#dib-footer *,
+.dib-notification-panel,
+.dib-notification-panel *,
+.dib-sidebar,
+.dib-sidebar * {
+    box-sizing: border-box;
+}
+
+/* Scoped link styles for DIB elements */
+#dib-header a,
+#dib-footer a,
+.dib-sidebar a {
+    color: var(--dib-primary);
+    text-decoration: none;
+}
+
+#dib-header a:hover,
+#dib-footer a:hover,
+.dib-sidebar a:hover {
+    color: var(--dib-secondary);
+}
+
+/* ---- SharePoint chrome overrides (safe) ---- */
+#s4-ribbonrow { background: var(--dib-primary-dark); }
+.ms-core-pageTitle { color: var(--dib-primary); }
+
+/* ---- Image sizing for DIB elements only ---- */
+#dib-header img.dib-logo {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
+#dib-footer img.dib-footer-logo {
+    height: 40px;
+    margin-bottom: 12px;
+    filter: brightness(0) invert(1);
+    object-fit: contain;
+}
+
+/* ---- Search box in DIB header ---- */
+.dib-search-box {
+    min-width: 200px;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+#dib-top-bar {
+    background: var(--dib-primary-dark);
+    color: var(--dib-white);
+    height: var(--dib-topbar-height);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1000;
+}
+
+.dib-top-bar-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.dib-top-bar-left, .dib-top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dib-top-bar-left i, .dib-top-bar-right i {
+    color: var(--dib-secondary);
+    font-size: 11px;
+}
+
+.dib-separator {
+    color: var(--dib-medium-gray);
+    margin: 0 4px;
+}
+
+.dib-lang-switch {
+    cursor: pointer;
+    padding: 2px 10px;
+    border: 1px solid var(--dib-secondary);
+    border-radius: 3px;
+    font-size: 11px;
+    transition: var(--dib-transition);
+}
+
+.dib-lang-switch:hover {
+    background: var(--dib-secondary);
+    color: var(--dib-primary-dark);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+#dib-header {
+    background: var(--dib-white);
+    height: var(--dib-header-height);
+    box-shadow: var(--dib-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    border-bottom: 3px solid var(--dib-secondary);
+}
+
+.dib-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.dib-logo-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dib-logo-text h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dib-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.dib-tagline {
+    font-size: 11px;
+    color: var(--dib-secondary-dark);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ---- Main Navigation ---- */
+.dib-main-nav ul {
+    list-style: none;
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+}
+
+.dib-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--dib-radius);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--dib-dark-gray);
+    transition: var(--dib-transition);
+}
+
+.dib-nav-link:hover {
+    background: var(--dib-light-gray);
+    color: var(--dib-primary);
+}
+
+.dib-nav-link.active {
+    background: var(--dib-primary);
+    color: var(--dib-white);
+}
+
+.dib-nav-link.active:hover {
+    background: var(--dib-primary-light);
+    color: var(--dib-white);
+}
+
+/* ---- Header Actions ---- */
+.dib-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dib-notification-bell {
+    position: relative;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--dib-dark-gray);
+    transition: var(--dib-transition);
+    padding: 8px;
+}
+
+.dib-notification-bell:hover {
+    color: var(--dib-primary);
+}
+
+.dib-notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    background: var(--dib-danger);
+    color: var(--dib-white);
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.dib-search-box {\n    min-width: 200px;\n}
+
+/* ============================================================
+   NOTIFICATION PANEL
+   ============================================================ */
+.dib-notification-panel {
+    position: fixed;
+    top: calc(var(--dib-topbar-height) + var(--dib-header-height));
+    right: 24px;
+    width: 380px;
+    max-height: 500px;
+    background: var(--dib-white);
+    border-radius: var(--dib-radius-lg);
+    box-shadow: var(--dib-shadow-lg);
+    z-index: 2000;
+    overflow: hidden;
+    border: 1px solid var(--dib-light-gray);
+}
+
+.dib-notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--dib-light-gray);
+    background: var(--dib-off-white);
+}
+
+.dib-notification-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--dib-primary);
+}
+
+.dib-notification-list {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.dib-notification-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--dib-light-gray);
+    cursor: pointer;
+    transition: var(--dib-transition);
+}
+
+.dib-notification-item:hover {
+    background: var(--dib-off-white);
+}
+
+.dib-notification-item.unread {
+    background: #f0f8f4;
+    border-left: 3px solid var(--dib-primary);
+}
+
+.dib-notification-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+.dib-notification-icon.task { background: #E3F2FD; color: var(--dib-info); }
+.dib-notification-icon.approval { background: #FFF8E1; color: var(--dib-warning); }
+.dib-notification-icon.complete { background: #E8F5E9; color: var(--dib-success); }
+.dib-notification-icon.alert { background: #FFEBEE; color: var(--dib-danger); }
+
+.dib-notification-content h4 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dib-text);
+}
+
+.dib-notification-content p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--dib-text-light);
+}
+
+.dib-notification-time {
+    font-size: 11px;
+    color: var(--dib-medium-gray);
+    white-space: nowrap;
+}
+
+/* ============================================================
+   SIDEBAR (inside native Seattle sideNavBox)
+   ============================================================ */
+.dib-sidebar {
+    background: var(--dib-white);
+    padding: 0;
+}
+
+.dib-sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--dib-light-gray);
+}
+
+.dib-sidebar-header h3 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--dib-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dib-sidebar-nav {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+}
+
+.dib-sidebar-nav li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--dib-dark-gray);
+    border-left: 3px solid transparent;
+}
+
+.dib-sidebar-nav li a:hover {
+    background: var(--dib-off-white);
+    color: var(--dib-primary);
+    border-left-color: var(--dib-secondary);
+}
+
+.dib-sidebar-nav li a i {
+    width: 18px;
+    text-align: center;
+    color: var(--dib-medium-gray);
+}
+
+.dib-sidebar-nav li a:hover i {
+    color: var(--dib-primary);
+}
+
+/* ---- Main Content (native Seattle #contentBox) ---- */
+#contentBox {
+    padding: 24px;
+    min-width: 0;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+#dib-footer {
+    background: var(--dib-primary-dark);
+    color: var(--dib-white);
+    margin-top: 40px;
+}
+
+.dib-footer-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 40px 24px;
+}
+
+.dib-footer-col h4 {
+    color: var(--dib-secondary);
+    font-size: 14px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.dib-footer-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dib-footer-col ul li {
+    margin-bottom: 8px;
+}
+
+.dib-footer-col ul li a {
+    color: var(--dib-medium-gray);
+    font-size: 13px;
+}
+
+.dib-footer-col ul li a:hover {
+    color: var(--dib-secondary);
+}
+
+.dib-footer-col p {
+    color: var(--dib-medium-gray);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.dib-social-links {
+    display: flex;
+    gap: 12px;
+}
+
+.dib-social-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    color: var(--dib-white);
+    font-size: 16px;
+    transition: var(--dib-transition);
+}
+
+.dib-social-links a:hover {
+    background: var(--dib-secondary);
+    color: var(--dib-primary-dark);
+}
+
+.dib-footer-bottom {
+    text-align: center;
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 12px;
+    color: var(--dib-medium-gray);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.dib-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: var(--dib-radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: var(--dib-transition);
+}
+
+.dib-btn-primary {
+    background: var(--dib-primary);
+    color: var(--dib-white);
+}
+
+.dib-btn-primary:hover {
+    background: var(--dib-primary-dark);
+    color: var(--dib-white);
+}
+
+.dib-btn-secondary {
+    background: var(--dib-secondary);
+    color: var(--dib-primary-dark);
+}
+
+.dib-btn-secondary:hover {
+    background: var(--dib-secondary-dark);
+}
+
+.dib-btn-outline {
+    background: transparent;
+    border: 1px solid var(--dib-primary);
+    color: var(--dib-primary);
+}
+
+.dib-btn-outline:hover {
+    background: var(--dib-primary);
+    color: var(--dib-white);
+}
+
+.dib-btn-link {
+    background: none;
+    border: none;
+    color: var(--dib-primary);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.dib-btn-link:hover {
+    color: var(--dib-secondary);
+    text-decoration: underline;
+}
+
+.dib-btn-danger {
+    background: var(--dib-danger);
+    color: var(--dib-white);
+}
+
+.dib-btn-danger:hover {
+    background: #B71C1C;
+    color: var(--dib-white);
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.dib-card {
+    background: var(--dib-white);
+    border-radius: var(--dib-radius-lg);
+    box-shadow: var(--dib-shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid var(--dib-light-gray);
+}
+
+.dib-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--dib-light-gray);
+}
+
+.dib-card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--dib-primary);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1200px) {
+    .dib-main-nav ul { gap: 2px; }
+    .dib-nav-link { padding: 8px 10px; font-size: 13px; }
+}
+
+@media (max-width: 992px) {
+    .dib-sidebar { width: 60px; overflow: hidden; }
+    .dib-sidebar-nav li a span, .dib-sidebar-header h3 span { display: none; }
+    .dib-footer-inner { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    #dib-header { height: auto; }
+    .dib-header-inner { flex-wrap: wrap; padding: 12px; gap: 12px; }
+    .dib-main-nav ul { flex-wrap: wrap; }
+    .dib-sidebar { display: none; }
+    #dib-main-content { padding: 16px; }
+    .dib-footer-inner { grid-template-columns: 1fr; }
+    .dib-notification-panel { width: calc(100vw - 32px); right: 16px; }
+}
