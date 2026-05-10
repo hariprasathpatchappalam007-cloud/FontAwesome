@@ -1,0 +1,131 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Gemini Copilot Chat</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Segoe UI;
+            background: #f3f4f6;
+        }
+
+        /* Floating Button */
+        #btnOpen {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: #111827;
+            color: white;
+            font-size: 26px;
+            cursor: pointer;
+        }
+
+        /* Chat Box */
+        #chatBox {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 420px;
+            height: 650px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+            overflow: hidden;
+        }
+
+        /* Header */
+        #header {
+            background: #111827;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Messages */
+        #messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f9fafb;
+        }
+
+        .user {
+            background: #2563eb;
+            color: white;
+            padding: 10px;
+            border-radius: 12px;
+            margin: 8px 0;
+            margin-left: 60px;
+        }
+
+        .ai {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 12px;
+            margin: 8px 0;
+            margin-right: 60px;
+            white-space: pre-wrap;
+        }
+
+        /* Input */
+        #inputBox {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        textarea {
+            flex: 1;
+            height: 60px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            padding: 8px;
+            resize: none;
+            outline: none;
+        }
+
+        button.send {
+            width: 80px;
+            margin-left: 10px;
+            background: #111827;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<button id="btnOpen" onclick="toggleChat()">✦</button>
+
+<div id="chatBox">
+
+    <div id="header">Gemini AI Copilot</div>
+
+    <div id="messages">
+        <div class="ai">Hello 👋 Ask me anything!</div>
+    </div>
+
+    <div id="inputBox">
+        <textarea id="txt"></textarea>
+        <button class="send" onclick="send()">Send</button>
+    </div>
+
+</div>
+
+<script type="text/javascript" src="GenAI.js"></script>
+
+</body>
+</html>
