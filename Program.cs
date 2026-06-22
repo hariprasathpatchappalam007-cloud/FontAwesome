@@ -9,23 +9,19 @@ using System.Net;
 using System.Text;
 using System.Web.Script.Serialization;
 
-namespace DFM.JiraSync
+namespace DFM_BPM.JiraSync
 {
     /// <summary>
-    /// Req6: Streaming, incremental JIRA sync for DMGT + DIBITP.
-    /// Key differences vs Req5:
-    ///   * Per-batch SqlConnection (no per-row connect/close storm)
-    ///   * Includes JiraID in INSERT (fixes "Cannot insert NULL into JiraID")
-    ///   * Streams batch-by-batch (no large in-memory accumulation)
-    ///   * Pulls extra fields needed for the redesigned dashboard
-    ///   * Emits a compact console-exec-summary.log with ~10-15 scenarios
-    ///   * After sync runs sp_RefreshDashboardReport so the web dashboard
-    ///     reads pre-aggregated numbers and loads "in the blink of an eye".
+    /// DFM_BPM JIRA Sync console application.
+    /// Fetches issues from JIRA and upserts them into dbo.JiraIssues in DFM_BPM database.
+    /// Also updates dbo.JiraConfig with last-run timestamp.
+    /// Run via Windows Task Scheduler or manually.
     /// </summary>
+    /// 
     internal class Program
     {
         private static readonly string ConnStr =
-            ConfigurationManager.ConnectionStrings["DFM"].ConnectionString;
+            ConfigurationManager.ConnectionStrings["DFM_BPM"].ConnectionString;
         private static readonly string BaseUrl =
             ConfigurationManager.AppSettings["JiraBaseUrl"];
         private static readonly string JiraUser =
@@ -82,8 +78,11 @@ namespace DFM.JiraSync
 
                 Log("Refreshing pre-aggregated DashboardSummary...");
                 try { ExecSp("sp_RefreshDashboardSummary"); }
-                catch (Exception ex) { Log("  sp_RefreshDashboardSummary failed (continuing): " + ex.Message);
-                                        RecordScenario("LegacySummaryFailed", ex.Message); }
+                catch (Exception ex)
+                {
+                    Log("  sp_RefreshDashboardSummary failed (continuing): " + ex.Message);
+                    RecordScenario("LegacySummaryFailed", ex.Message);
+                }
 
                 Log("Refreshing Req6 DashboardReport (one-shot dashboard payload)...");
                 ExecSp("sp_RefreshDashboardReport");
@@ -131,7 +130,12 @@ namespace DFM.JiraSync
                 + "customfield_13306,customfield_13359,customfield_10964,"
                 + "customfield_13375,customfield_13374,customfield_13362,"
                 + "customfield_13307,customfield_13308,"
-                + "customfield_10043,customfield_10044";
+                + "customfield_10043,customfield_10044,"
+                + "customfield_10911,customfield_10916,customfield_13310,customfield_10909,customfield_13101,customfield_13600,"
+                + "customfield_13304,customfield_13314,customfield_10605,customfield_10606,"
+                + "customfield_14125,customfield_14131,customfield_14132,customfield_14130,customfield_14128,customfield_14129,customfield_14126,"
+                + "customfield_10966,customfield_10102,customfield_13818,customfield_11627,"
+                + "customfield_13405,customfield_13406,customfield_11208,customfield_13513,customfield_13007,customfield_13006";
             // FieldsOverride == null  -> use the heavy default list above
             // FieldsOverride == ""    -> omit fields entirely (matches the working ASPX behaviour)
             // otherwise               -> use whatever the operator configured
@@ -226,7 +230,7 @@ namespace DFM.JiraSync
                             {
                                 int r = UpsertIssue(cmd, issue, projectKey);
                                 if (r == 1) { _inserted++; batchInserted++; }
-                                else        { _updated++;  batchUpdated++; }
+                                else { _updated++; batchUpdated++; }
                                 _pulled++;
                             }
                             catch (Exception ex)
@@ -317,7 +321,22 @@ BEGIN
            JiraCreated=ISNULL(JiraCreated, @cre),
            JiraUpdated=@upd,
            CreatedDate=ISNULL(CreatedDate,@cre),
-           UpdatedDate=@upd
+           UpdatedDate=@upd,
+           EmployeeEmail=ISNULL(@empEmail, EmployeeEmail),
+           EmployeeName=ISNULL(@empName, EmployeeName),
+           ProjectPerformingDept=@ppd, ProjectSponsorDept=@psd,
+           DemandDepartment=@ddept, RequesterDept=@rdept,
+           ProjectDept=@pdept, DemandSegment=@dseg,
+           DemandTitle=@dtitle, RegulatoryObservation=@regobs,
+           BaselineStartDate=@blsd, BaselineEndDate=@bled,
+           Baseline1ActualStart=@bl1as, Baseline0PlannedStart=@bl0ps,
+           Baseline0PlannedEnd=@bl0pe, Baseline0ActualEnd=@bl0ae,
+           Baseline1ActualGoLive=@bl1agl, Baseline0ActualStart=@bl0as,
+           Baseline1ActualEnd=@bl1ae,
+           RolloutStatus=@rost, EpicStatus=@epst, BrdStatus=@brdst,
+           ScriptStatus=@scst, StatusGrey=@stgr, StatusReason=@streason,
+           InitiativeStatus=@inst, ProjectOverallStatus=@posts,
+           CbtpBrdStatus=@cbtp, FsdStatus=@fsdst
      WHERE JiraKey=@k;
     SELECT 0;
 END
@@ -339,7 +358,15 @@ BEGIN
         Proposed_Baseline_0_End_Date, Proposed_Baseline_0_Start_Date,
         Proposed_Baseline_0_submission_Date,
         Primary_Classification, Classification, Department,
-        JiraCreated, JiraUpdated, CreatedDate, UpdatedDate)
+        JiraCreated, JiraUpdated, CreatedDate, UpdatedDate,
+        EmployeeEmail, EmployeeName,
+        ProjectPerformingDept, ProjectSponsorDept, DemandDepartment, RequesterDept,
+        ProjectDept, DemandSegment, DemandTitle, RegulatoryObservation,
+        BaselineStartDate, BaselineEndDate, Baseline1ActualStart, Baseline0PlannedStart,
+        Baseline0PlannedEnd, Baseline0ActualEnd, Baseline1ActualGoLive, Baseline0ActualStart,
+        Baseline1ActualEnd, RolloutStatus, EpicStatus, BrdStatus, ScriptStatus,
+        StatusGrey, StatusReason, InitiativeStatus, ProjectOverallStatus,
+        CbtpBrdStatus, FsdStatus)
     VALUES(
         @jid, @k, @summary, @status, @status, @priority, @itype, @itype,
         @proj, @projName, @parent,
@@ -355,51 +382,89 @@ BEGIN
         @agld,
         @pb0e, @pb0s, @pb0sb,
         @pcl, @cl, @dep,
-        @cre, @upd, @cre, @upd);
+        @cre, @upd, @cre, @upd,
+        @empEmail, @empName,
+        @ppd, @psd, @ddept, @rdept,
+        @pdept, @dseg, @dtitle, @regobs,
+        @blsd, @bled, @bl1as, @bl0ps,
+        @bl0pe, @bl0ae, @bl1agl, @bl0as,
+        @bl1ae, @rost, @epst, @brdst, @scst,
+        @stgr, @streason, @inst, @posts,
+        @cbtp, @fsdst);
     SELECT 1;
 END";
-            cmd.Parameters.Add("@jid",      SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@k",        SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@summary",  SqlDbType.NVarChar, 500);
-            cmd.Parameters.Add("@status",   SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@jid", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@k", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@summary", SqlDbType.NVarChar, 500);
+            cmd.Parameters.Add("@status", SqlDbType.NVarChar, 100);
             cmd.Parameters.Add("@priority", SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@itype",    SqlDbType.NVarChar, 100);
-            cmd.Parameters.Add("@proj",     SqlDbType.NVarChar, 20);
+            cmd.Parameters.Add("@itype", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@proj", SqlDbType.NVarChar, 20);
             cmd.Parameters.Add("@projName", SqlDbType.NVarChar, 300);
-            cmd.Parameters.Add("@parent",   SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@plat",     SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@pv",       SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@pn",       SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@sp",       SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@arag",     SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@srag",     SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@brag",     SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@raidr",    SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@orag",     SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@parent", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@plat", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@pv", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@pn", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@sp", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@arag", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@srag", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@brag", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@raidr", SqlDbType.NVarChar, 50);
+            cmd.Parameters.Add("@orag", SqlDbType.NVarChar, 50);
             cmd.Parameters.Add("@computedRag", SqlDbType.NVarChar, 50);
-            cmd.Parameters.Add("@chief",    SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@mgr",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@tl",       SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@ael",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@sme",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@ae",       SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@chief", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@mgr", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@tl", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@ael", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@sme", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@ae", SqlDbType.NVarChar, 200);
             cmd.Parameters.Add("@assignee", SqlDbType.NVarChar, 200);
             cmd.Parameters.Add("@reporter", SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@apm",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@iph",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@downer",   SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@dtype",    SqlDbType.NVarChar, 100);
-            cmd.Parameters.Add("@tcd",      SqlDbType.DateTime);
-            cmd.Parameters.Add("@pdp",      SqlDbType.DateTime);
-            cmd.Parameters.Add("@agld",     SqlDbType.DateTime);
-            cmd.Parameters.Add("@pb0e",     SqlDbType.DateTime);
-            cmd.Parameters.Add("@pb0s",     SqlDbType.DateTime);
-            cmd.Parameters.Add("@pb0sb",    SqlDbType.DateTime);
-            cmd.Parameters.Add("@pcl",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@cl",       SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@dep",      SqlDbType.NVarChar, 200);
-            cmd.Parameters.Add("@cre",      SqlDbType.DateTime);
-            cmd.Parameters.Add("@upd",      SqlDbType.DateTime);
+            cmd.Parameters.Add("@apm", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@iph", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@downer", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@dtype", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@tcd", SqlDbType.DateTime);
+            cmd.Parameters.Add("@pdp", SqlDbType.DateTime);
+            cmd.Parameters.Add("@agld", SqlDbType.DateTime);
+            cmd.Parameters.Add("@pb0e", SqlDbType.DateTime);
+            cmd.Parameters.Add("@pb0s", SqlDbType.DateTime);
+            cmd.Parameters.Add("@pb0sb", SqlDbType.DateTime);
+            cmd.Parameters.Add("@pcl", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@cl", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@dep", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@cre", SqlDbType.DateTime);
+            cmd.Parameters.Add("@upd", SqlDbType.DateTime);
+            cmd.Parameters.Add("@empEmail", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@empName", SqlDbType.NVarChar, 200);
+            // New fields from NewJiraFields.csv
+            cmd.Parameters.Add("@ppd", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@psd", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@ddept", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@rdept", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@pdept", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@dseg", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@dtitle", SqlDbType.NVarChar, 500);
+            cmd.Parameters.Add("@regobs", SqlDbType.NVarChar, -1);
+            cmd.Parameters.Add("@blsd", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bled", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl1as", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl0ps", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl0pe", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl0ae", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl1agl", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl0as", SqlDbType.DateTime);
+            cmd.Parameters.Add("@bl1ae", SqlDbType.DateTime);
+            cmd.Parameters.Add("@rost", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@epst", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@brdst", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@scst", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@stgr", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@streason", SqlDbType.NVarChar, 200);
+            cmd.Parameters.Add("@inst", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@posts", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@cbtp", SqlDbType.NVarChar, 100);
+            cmd.Parameters.Add("@fsdst", SqlDbType.NVarChar, 100);
             return cmd;
         }
 
@@ -414,18 +479,18 @@ END";
             var fields = issue["fields"] as Dictionary<string, object>;
             if (fields == null) throw new InvalidOperationException("Issue " + key + " has no 'fields'");
 
-            string summary    = Get(fields, "summary");
-            string status     = GetNested(fields, "status", "name");
-            string priority   = GetNested(fields, "priority", "name");
-            string issuetype  = GetNested(fields, "issuetype", "name");
-            string projName   = GetNested(fields, "project", "name");
-            string parentJid  = ExtractParentKey(fields);
+            string summary = Get(fields, "summary");
+            string status = GetNested(fields, "status", "name");
+            string priority = GetNested(fields, "priority", "name");
+            string issuetype = GetNested(fields, "issuetype", "name");
+            string projName = GetNested(fields, "project", "name");
+            string parentJid = ExtractParentKey(fields);
 
             // Platform fields (console-specific custom fields)
-            string platform         = GetNestedAny(fields, "customfield_12609", new[] { "value", "name" });
+            string platform = GetNestedAny(fields, "customfield_12609", new[] { "value", "name" });
             string platformVertical = GetNestedAny(fields, "customfield_12604", new[] { "value", "name" });
-            string platformName     = GetNestedAny(fields, "customfield_11610", new[] { "value", "name" });
-            string secPlatform      = GetNestedAny(fields, "customfield_13380", new[] { "value", "name" });
+            string platformName = GetNestedAny(fields, "customfield_11610", new[] { "value", "name" });
+            string secPlatform = GetNestedAny(fields, "customfield_13380", new[] { "value", "name" });
 
             // Platform fallbacks from ASPX (customfield_10043, 10044, or scan)
             if (string.IsNullOrEmpty(platform))
@@ -436,11 +501,11 @@ END";
                 platform = ScanForPlatform(fields);
 
             // RAG fields
-            string activityRag      = GetNestedAny(fields, "customfield_13419", new[] { "value", "name" });
-            string scheduleRag      = GetNestedAny(fields, "customfield_13511", new[] { "value", "name" });
-            string budgetRag        = GetNestedAny(fields, "customfield_13510", new[] { "value", "name" });
-            string raidRag          = GetNestedAny(fields, "customfield_13505", new[] { "value", "name" });
-            string overallRag       = GetNestedAny(fields, "customfield_13509", new[] { "value", "name" });
+            string activityRag = GetNestedAny(fields, "customfield_13419", new[] { "value", "name" });
+            string scheduleRag = GetNestedAny(fields, "customfield_13511", new[] { "value", "name" });
+            string budgetRag = GetNestedAny(fields, "customfield_13510", new[] { "value", "name" });
+            string raidRag = GetNestedAny(fields, "customfield_13505", new[] { "value", "name" });
+            string overallRag = GetNestedAny(fields, "customfield_13509", new[] { "value", "name" });
 
             // People fields - aligned with JiraIntegration.aspx.cs mappings:
             //   customfield_13357 = AccountableExecLead (Stakeholder)
@@ -450,43 +515,88 @@ END";
             //   customfield_12603 = AssignedProjectManager (Manager)
             //   customfield_13317 = DemandOwner
             //   customfield_14001 = ChiefNameMapping
-            string accExecLead      = GetNested(fields, "customfield_13357", "displayName");
-            string smeLead          = GetNested(fields, "customfield_13358", "displayName");
-            string accExec          = GetNested(fields, "customfield_13379", "displayName");
+            string accExecLead = GetNested(fields, "customfield_13357", "displayName");
+            string smeLead = GetNested(fields, "customfield_13358", "displayName");
+            string accExec = GetNested(fields, "customfield_13379", "displayName");
             string idhPortfolioHead = GetNested(fields, "customfield_13376", "displayName");
-            string assignedPm       = GetNested(fields, "customfield_12603", "displayName");
-            string demandOwner      = GetNested(fields, "customfield_13317", "displayName");
-            string chief            = GetNested(fields, "customfield_14001", "displayName");
-            string assignee         = GetNested(fields, "assignee", "displayName");
-            string reporter         = GetNested(fields, "reporter", "displayName");
+            string assignedPm = GetNested(fields, "customfield_12603", "displayName");
+            string demandOwner = GetNested(fields, "customfield_13317", "displayName");
+            string chief = GetNested(fields, "customfield_14001", "displayName");
+            string assignee = GetNested(fields, "assignee", "displayName");
+            string assigneeEmail = GetNested(fields, "assignee", "emailAddress");
+            string reporter = GetNested(fields, "reporter", "displayName");
 
             // DemandType from custom field (not issuetype)
-            string demandType       = GetNestedAny(fields, "customfield_13339", new[] { "value", "name" });
+            string demandType = GetNestedAny(fields, "customfield_13339", new[] { "value", "name" });
 
             // Date fields
-            string createdStr                = Get(fields, "created");
-            string updatedStr                = Get(fields, "updated");
-            string targetCompletionDate      = Get(fields, "customfield_13306");
-            string proposedDemandPickup      = Get(fields, "customfield_13359");
-            string actualGoLive              = Get(fields, "customfield_10964");
-            string proposedBaseline0End      = Get(fields, "customfield_13375");
-            string proposedBaseline0Start    = Get(fields, "customfield_13374");
-            string proposedBaseline0Submit   = Get(fields, "customfield_13362");
+            string createdStr = Get(fields, "created");
+            string updatedStr = Get(fields, "updated");
+            string targetCompletionDate = Get(fields, "customfield_13306");
+            string proposedDemandPickup = Get(fields, "customfield_13359");
+            string actualGoLive = Get(fields, "customfield_10964");
+            string proposedBaseline0End = Get(fields, "customfield_13375");
+            string proposedBaseline0Start = Get(fields, "customfield_13374");
+            string proposedBaseline0Submit = Get(fields, "customfield_13362");
 
             // Classification / Department
             string primaryClassification = GetNestedAny(fields, "customfield_13307", new[] { "value", "name" });
-            string classification        = primaryClassification;
-            string department            = GetNestedAny(fields, "customfield_13308", new[] { "value", "name" });
+            string classification = primaryClassification;
+            string department = GetNestedAny(fields, "customfield_13308", new[] { "value", "name" });
+
+            // ---- New fields from NewJiraFields.csv ----
+            // Department variants (single-select objects)
+            string projPerformingDept = GetNestedAny(fields, "customfield_10911", new[] { "value", "name" });
+            string projSponsorDept = GetNestedAny(fields, "customfield_10916", new[] { "value", "name" });
+            string demandDept = GetNestedAny(fields, "customfield_13310", new[] { "value", "name" });
+            string requesterDept = GetNestedAny(fields, "customfield_10909", new[] { "value", "name" });
+            string projectDept = GetNestedAny(fields, "customfield_13101", new[] { "value", "name" });
+            string demandSegment = GetNestedAny(fields, "customfield_13600", new[] { "value", "name" });
+            // Text fields
+            string demandTitle = Get(fields, "customfield_13304");
+            string regulatoryObservation = Get(fields, "customfield_13314");
+            // Baseline date strings
+            string baselineStartStr = Get(fields, "customfield_10605");
+            string baselineEndStr = Get(fields, "customfield_10606");
+            string bl1ActualStartStr = Get(fields, "customfield_14125");
+            string bl0PlannedStartStr = Get(fields, "customfield_14131");
+            string bl0PlannedEndStr = Get(fields, "customfield_14132");
+            string bl0ActualEndStr = Get(fields, "customfield_14130");
+            string bl1ActualGoLiveStr = Get(fields, "customfield_14128");
+            string bl0ActualStartStr = Get(fields, "customfield_14129");
+            string bl1ActualEndStr = Get(fields, "customfield_14126");
+            // Status fields (single-select objects)
+            string rolloutStatus = GetNestedAny(fields, "customfield_10966", new[] { "value", "name" });
+            string epicStatus = GetNestedAny(fields, "customfield_10102", new[] { "value", "name" });
+            string brdStatus = GetNestedAny(fields, "customfield_13818", new[] { "value", "name" });
+            string scriptStatus = GetNestedAny(fields, "customfield_11627", new[] { "value", "name" });
+            string statusGrey = GetNestedAny(fields, "customfield_13405", new[] { "value", "name" });
+            string statusReason = GetNestedAny(fields, "customfield_13406", new[] { "value", "name" });
+            string initiativeStatus = GetNestedAny(fields, "customfield_11208", new[] { "value", "name" });
+            string projectOverallStatus = GetNestedAny(fields, "customfield_13513", new[] { "value", "name" });
+            string cbtpBrdStatus = GetNestedAny(fields, "customfield_13007", new[] { "value", "name" });
+            string fsdStatus = GetNestedAny(fields, "customfield_13006", new[] { "value", "name" });
 
             // Parse dates
-            DateTime? created    = ParseDate(createdStr);
-            DateTime? updated    = ParseDate(updatedStr);
-            DateTime? targetD    = ParseDate(targetCompletionDate);
-            DateTime? proposedD  = ParseDate(proposedDemandPickup);
-            DateTime? actualGoD  = ParseDate(actualGoLive);
-            DateTime? pb0End     = ParseDate(proposedBaseline0End);
-            DateTime? pb0Start   = ParseDate(proposedBaseline0Start);
-            DateTime? pb0Submit  = ParseDate(proposedBaseline0Submit);
+            DateTime? created = ParseDate(createdStr);
+            DateTime? updated = ParseDate(updatedStr);
+            DateTime? targetD = ParseDate(targetCompletionDate);
+            DateTime? proposedD = ParseDate(proposedDemandPickup);
+            DateTime? actualGoD = ParseDate(actualGoLive);
+            DateTime? pb0End = ParseDate(proposedBaseline0End);
+            DateTime? pb0Start = ParseDate(proposedBaseline0Start);
+            DateTime? pb0Submit = ParseDate(proposedBaseline0Submit);
+
+            // Parse new baseline dates
+            DateTime? baselineStartD = ParseDate(baselineStartStr);
+            DateTime? baselineEndD = ParseDate(baselineEndStr);
+            DateTime? bl1ActualStartD = ParseDate(bl1ActualStartStr);
+            DateTime? bl0PlannedStartD = ParseDate(bl0PlannedStartStr);
+            DateTime? bl0PlannedEndD = ParseDate(bl0PlannedEndStr);
+            DateTime? bl0ActualEndD = ParseDate(bl0ActualEndStr);
+            DateTime? bl1ActualGoLiveD = ParseDate(bl1ActualGoLiveStr);
+            DateTime? bl0ActualStartD = ParseDate(bl0ActualStartStr);
+            DateTime? bl1ActualEndD = ParseDate(bl1ActualEndStr);
 
             // Compute RAG from TargetCompletionDate (same logic as ASPX)
             string computedRag = ComputeRag(targetD);
@@ -496,48 +606,79 @@ END";
             // TechLead column = SmeLead (customfield_13358), matching ASPX
             string techLead = smeLead;
 
-            cmd.Parameters["@jid"].Value      = (object)id ?? DBNull.Value;
-            cmd.Parameters["@k"].Value        = key;
-            cmd.Parameters["@summary"].Value  = (object)Clip(summary, 500) ?? DBNull.Value;
-            cmd.Parameters["@status"].Value   = (object)status ?? DBNull.Value;
+            cmd.Parameters["@jid"].Value = (object)id ?? DBNull.Value;
+            cmd.Parameters["@k"].Value = key;
+            cmd.Parameters["@summary"].Value = (object)Clip(summary, 500) ?? DBNull.Value;
+            cmd.Parameters["@status"].Value = (object)status ?? DBNull.Value;
             cmd.Parameters["@priority"].Value = (object)priority ?? DBNull.Value;
-            cmd.Parameters["@itype"].Value    = (object)issuetype ?? DBNull.Value;
-            cmd.Parameters["@proj"].Value     = projectKey;
+            cmd.Parameters["@itype"].Value = (object)issuetype ?? DBNull.Value;
+            cmd.Parameters["@proj"].Value = projectKey;
             cmd.Parameters["@projName"].Value = (object)Clip(string.IsNullOrEmpty(projName) ? summary : projName, 300) ?? DBNull.Value;
-            cmd.Parameters["@parent"].Value   = (object)parentJid ?? DBNull.Value;
-            cmd.Parameters["@plat"].Value     = (object)platform ?? DBNull.Value;
-            cmd.Parameters["@pv"].Value       = (object)platformVertical ?? DBNull.Value;
-            cmd.Parameters["@pn"].Value       = (object)platformName ?? DBNull.Value;
-            cmd.Parameters["@sp"].Value       = (object)secPlatform ?? DBNull.Value;
-            cmd.Parameters["@arag"].Value     = (object)activityRag ?? DBNull.Value;
-            cmd.Parameters["@srag"].Value     = (object)scheduleRag ?? DBNull.Value;
-            cmd.Parameters["@brag"].Value     = (object)budgetRag ?? DBNull.Value;
-            cmd.Parameters["@raidr"].Value    = (object)raidRag ?? DBNull.Value;
-            cmd.Parameters["@orag"].Value     = (object)overallRag ?? DBNull.Value;
+            cmd.Parameters["@parent"].Value = (object)parentJid ?? DBNull.Value;
+            cmd.Parameters["@plat"].Value = (object)platform ?? DBNull.Value;
+            cmd.Parameters["@pv"].Value = (object)platformVertical ?? DBNull.Value;
+            cmd.Parameters["@pn"].Value = (object)platformName ?? DBNull.Value;
+            cmd.Parameters["@sp"].Value = (object)secPlatform ?? DBNull.Value;
+            cmd.Parameters["@arag"].Value = (object)activityRag ?? DBNull.Value;
+            cmd.Parameters["@srag"].Value = (object)scheduleRag ?? DBNull.Value;
+            cmd.Parameters["@brag"].Value = (object)budgetRag ?? DBNull.Value;
+            cmd.Parameters["@raidr"].Value = (object)raidRag ?? DBNull.Value;
+            cmd.Parameters["@orag"].Value = (object)overallRag ?? DBNull.Value;
             cmd.Parameters["@computedRag"].Value = (object)computedRag ?? DBNull.Value;
-            cmd.Parameters["@chief"].Value    = (object)chief ?? DBNull.Value;
-            cmd.Parameters["@mgr"].Value      = (object)manager ?? DBNull.Value;
-            cmd.Parameters["@tl"].Value       = (object)techLead ?? DBNull.Value;
-            cmd.Parameters["@ael"].Value      = (object)accExecLead ?? DBNull.Value;
-            cmd.Parameters["@sme"].Value      = (object)smeLead ?? DBNull.Value;
-            cmd.Parameters["@ae"].Value       = (object)accExec ?? DBNull.Value;
+            cmd.Parameters["@chief"].Value = (object)chief ?? DBNull.Value;
+            cmd.Parameters["@mgr"].Value = (object)manager ?? DBNull.Value;
+            cmd.Parameters["@tl"].Value = (object)techLead ?? DBNull.Value;
+            cmd.Parameters["@ael"].Value = (object)accExecLead ?? DBNull.Value;
+            cmd.Parameters["@sme"].Value = (object)smeLead ?? DBNull.Value;
+            cmd.Parameters["@ae"].Value = (object)accExec ?? DBNull.Value;
             cmd.Parameters["@assignee"].Value = (object)assignee ?? DBNull.Value;
             cmd.Parameters["@reporter"].Value = (object)reporter ?? DBNull.Value;
-            cmd.Parameters["@apm"].Value      = (object)assignedPm ?? DBNull.Value;
-            cmd.Parameters["@iph"].Value      = (object)idhPortfolioHead ?? DBNull.Value;
-            cmd.Parameters["@downer"].Value   = (object)demandOwner ?? DBNull.Value;
-            cmd.Parameters["@dtype"].Value    = (object)demandType ?? DBNull.Value;
-            cmd.Parameters["@tcd"].Value      = targetD.HasValue ? (object)targetD.Value : DBNull.Value;
-            cmd.Parameters["@pdp"].Value      = proposedD.HasValue ? (object)proposedD.Value : DBNull.Value;
-            cmd.Parameters["@agld"].Value     = actualGoD.HasValue ? (object)actualGoD.Value : DBNull.Value;
-            cmd.Parameters["@pb0e"].Value     = pb0End.HasValue ? (object)pb0End.Value : DBNull.Value;
-            cmd.Parameters["@pb0s"].Value     = pb0Start.HasValue ? (object)pb0Start.Value : DBNull.Value;
-            cmd.Parameters["@pb0sb"].Value    = pb0Submit.HasValue ? (object)pb0Submit.Value : DBNull.Value;
-            cmd.Parameters["@pcl"].Value      = (object)primaryClassification ?? DBNull.Value;
-            cmd.Parameters["@cl"].Value       = (object)classification ?? DBNull.Value;
-            cmd.Parameters["@dep"].Value      = (object)department ?? DBNull.Value;
-            cmd.Parameters["@cre"].Value      = created.HasValue ? (object)created.Value : DBNull.Value;
-            cmd.Parameters["@upd"].Value      = updated.HasValue ? (object)updated.Value : DBNull.Value;
+            cmd.Parameters["@empEmail"].Value = (object)assigneeEmail ?? DBNull.Value;
+            cmd.Parameters["@empName"].Value = (object)assignee ?? DBNull.Value;
+            cmd.Parameters["@apm"].Value = (object)assignedPm ?? DBNull.Value;
+            cmd.Parameters["@iph"].Value = (object)idhPortfolioHead ?? DBNull.Value;
+            cmd.Parameters["@downer"].Value = (object)demandOwner ?? DBNull.Value;
+            cmd.Parameters["@dtype"].Value = (object)demandType ?? DBNull.Value;
+            cmd.Parameters["@tcd"].Value = targetD.HasValue ? (object)targetD.Value : DBNull.Value;
+            cmd.Parameters["@pdp"].Value = proposedD.HasValue ? (object)proposedD.Value : DBNull.Value;
+            cmd.Parameters["@agld"].Value = actualGoD.HasValue ? (object)actualGoD.Value : DBNull.Value;
+            cmd.Parameters["@pb0e"].Value = pb0End.HasValue ? (object)pb0End.Value : DBNull.Value;
+            cmd.Parameters["@pb0s"].Value = pb0Start.HasValue ? (object)pb0Start.Value : DBNull.Value;
+            cmd.Parameters["@pb0sb"].Value = pb0Submit.HasValue ? (object)pb0Submit.Value : DBNull.Value;
+            cmd.Parameters["@pcl"].Value = (object)primaryClassification ?? DBNull.Value;
+            cmd.Parameters["@cl"].Value = (object)classification ?? DBNull.Value;
+            cmd.Parameters["@dep"].Value = (object)department ?? DBNull.Value;
+            cmd.Parameters["@cre"].Value = created.HasValue ? (object)created.Value : DBNull.Value;
+            cmd.Parameters["@upd"].Value = updated.HasValue ? (object)updated.Value : DBNull.Value;
+
+            // New field parameter values
+            cmd.Parameters["@ppd"].Value = (object)projPerformingDept ?? DBNull.Value;
+            cmd.Parameters["@psd"].Value = (object)projSponsorDept ?? DBNull.Value;
+            cmd.Parameters["@ddept"].Value = (object)demandDept ?? DBNull.Value;
+            cmd.Parameters["@rdept"].Value = (object)requesterDept ?? DBNull.Value;
+            cmd.Parameters["@pdept"].Value = (object)projectDept ?? DBNull.Value;
+            cmd.Parameters["@dseg"].Value = (object)demandSegment ?? DBNull.Value;
+            cmd.Parameters["@dtitle"].Value = (object)Clip(demandTitle, 500) ?? DBNull.Value;
+            cmd.Parameters["@regobs"].Value = (object)regulatoryObservation ?? DBNull.Value;
+            cmd.Parameters["@blsd"].Value = baselineStartD.HasValue ? (object)baselineStartD.Value : DBNull.Value;
+            cmd.Parameters["@bled"].Value = baselineEndD.HasValue ? (object)baselineEndD.Value : DBNull.Value;
+            cmd.Parameters["@bl1as"].Value = bl1ActualStartD.HasValue ? (object)bl1ActualStartD.Value : DBNull.Value;
+            cmd.Parameters["@bl0ps"].Value = bl0PlannedStartD.HasValue ? (object)bl0PlannedStartD.Value : DBNull.Value;
+            cmd.Parameters["@bl0pe"].Value = bl0PlannedEndD.HasValue ? (object)bl0PlannedEndD.Value : DBNull.Value;
+            cmd.Parameters["@bl0ae"].Value = bl0ActualEndD.HasValue ? (object)bl0ActualEndD.Value : DBNull.Value;
+            cmd.Parameters["@bl1agl"].Value = bl1ActualGoLiveD.HasValue ? (object)bl1ActualGoLiveD.Value : DBNull.Value;
+            cmd.Parameters["@bl0as"].Value = bl0ActualStartD.HasValue ? (object)bl0ActualStartD.Value : DBNull.Value;
+            cmd.Parameters["@bl1ae"].Value = bl1ActualEndD.HasValue ? (object)bl1ActualEndD.Value : DBNull.Value;
+            cmd.Parameters["@rost"].Value = (object)rolloutStatus ?? DBNull.Value;
+            cmd.Parameters["@epst"].Value = (object)epicStatus ?? DBNull.Value;
+            cmd.Parameters["@brdst"].Value = (object)brdStatus ?? DBNull.Value;
+            cmd.Parameters["@scst"].Value = (object)scriptStatus ?? DBNull.Value;
+            cmd.Parameters["@stgr"].Value = (object)statusGrey ?? DBNull.Value;
+            cmd.Parameters["@streason"].Value = (object)statusReason ?? DBNull.Value;
+            cmd.Parameters["@inst"].Value = (object)initiativeStatus ?? DBNull.Value;
+            cmd.Parameters["@posts"].Value = (object)projectOverallStatus ?? DBNull.Value;
+            cmd.Parameters["@cbtp"].Value = (object)cbtpBrdStatus ?? DBNull.Value;
+            cmd.Parameters["@fsdst"].Value = (object)fsdStatus ?? DBNull.Value;
 
             object r = cmd.ExecuteScalar();
             return r == null || r == DBNull.Value ? 0 : Convert.ToInt32(r);
@@ -727,12 +868,12 @@ END";
                 switch (c)
                 {
                     case '\\': sb.Append("\\\\"); break;
-                    case '"':  sb.Append("\\\""); break;
-                    case '\b': sb.Append("\\b");  break;
-                    case '\f': sb.Append("\\f");  break;
-                    case '\n': sb.Append("\\n");  break;
-                    case '\r': sb.Append("\\r");  break;
-                    case '\t': sb.Append("\\t");  break;
+                    case '"': sb.Append("\\\""); break;
+                    case '\b': sb.Append("\\b"); break;
+                    case '\f': sb.Append("\\f"); break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\r': sb.Append("\\r"); break;
+                    case '\t': sb.Append("\\t"); break;
                     default:
                         if (c < 0x20) sb.AppendFormat("\\u{0:x4}", (int)c);
                         else sb.Append(c);
@@ -909,4 +1050,5 @@ END";
             catch { }
         }
     }
+    
 }
