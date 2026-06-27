@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Falcon PET Management System</title>
+
+    <!-- ══════════════════════════════════════════════════════
+         SharePoint Master Page Override
+         Suppresses SharePoint Subscription Edition chrome
+         (ribbon, top navigation, breadcrumbs, left nav, title area)
+         so the AngularJS SPA takes full control of the viewport.
+         These selectors work for both classic and minimal master pages.
+         ══════════════════════════════════════════════════════ -->
+    <style id="sp-master-override">
+        /* ── Hide SP Subscription Edition UI chrome ── */
+        #s4-ribbonrow,
+        #ms-designer-ribbon,
+        #suiteBarTop,
+        .ms-globalbar,
+        .ms-globalbar-top,
+        .SPSuiteLink,
+        #siteactiontd,
+        #siteactionstd,
+        .ms-siteactionsmenu,
+        #DeltaTopNavigation,
+        #zz7_TopNavigationMenu,
+        .ms-topnav,
+        .ms-topNavContainer,
+        #ms-crumbs,
+        #DeltaPlaceHolderPageTitleInTitleArea,
+        #DeltaPageTitleAndDescriptionRow,
+        #ctl00_PlaceHolderPageTitleInTitleArea,
+        .ms-pagetitle,
+        #pageTitle,
+        #DeltaQuickLaunch,
+        .ms-quicklaunch,
+        #sideNavBox,
+        #contentRow td.ms-navframe,
+        .ms-footer,
+        #contentBox .ms-pagebreadcrumb,
+        .ms-breadcrumb-top,
+        #ms-breadcrumb-row,
+        .ms-core-navigation,
+        #ms-designer-ribbon,
+        #_invisible,
+        .s4-notdlg.ms-core-overlay,
+        .ms-dialogOverlay,
+        .noindex.ms-core-overlay,
+        #ms-rteToolBar { display: none !important; }
+
+        /* ── Remove padding/margin injected by s4-workspace ── */
+        body.v4master,
+        body#BodyStyle,
+        body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+
+        /* ── Make s4-workspace fill the viewport ── */
+        #s4-workspace {
+            overflow: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: 100vh !important;
+        }
+
+        /* ── Content area: remove default gutters ── */
+        #contentBox,
+        #ctl00_PlaceHolderMain,
+        #MSO_ContentDiv,
+        .ms-core-page-center { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+
+        /* ── Web part chrome: no title bar, no borders ── */
+        .ms-WPBorderBorderStyle_None,
+        .ms-WPHeader,
+        .ms-WPBody td.ms-formfieldcontainer,
+        td.ms-WPBorder,
+        table.ms-formtable { border: none !important; padding: 0 !important; }
+        .ms-WPHeader { display: none !important; }
+
+        /* ── Ensure our app shell takes full page ── */
+        #appShell { z-index: 10; position: relative; }
+    </style>
+
+    <!-- ── Script: SP master override on DOM ready ── -->
+    <script>
+        // Run before AngularJS bootstraps to avoid flash of SP chrome.
+        (function () {
+            function hideSPChrome() {
+                var ids = [
+                    's4-ribbonrow','suiteBarTop','DeltaTopNavigation','DeltaQuickLaunch',
+                    'sideNavBox','ms-crumbs','DeltaPlaceHolderPageTitleInTitleArea',
+                    'DeltaPageTitleAndDescriptionRow','ms-designer-ribbon'
+                ];
+                ids.forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+                // Remove left navigation column
+                var qs = document.querySelectorAll(
+                    '#contentRow td.ms-navframe,.ms-quicklaunch,.ms-topNavContainer,.ms-footer');
+                [].forEach.call(qs, function (el) { el.style.display = 'none'; });
+
+                // Expand workspace to fill screen
+                var ws = document.getElementById('s4-workspace');
+                if (ws) { ws.style.overflow = 'auto'; ws.style.padding = '0'; }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', hideSPChrome);
+            } else {
+                hideSPChrome();
+            }
+        }());
+    </script>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         Dynamic Asset Loader — Base URL Fix
+         ──────────────────────────────────────────────────────────────────
+         Problem: When index.html is served through a SharePoint Content
+         Editor Web Part (CEWP) the page URL is SitePages/..., so all
+         relative src/href attributes (e.g. "CSS/bootstrap.min.css") are
+         resolved against SitePages/ instead of SiteAssets/PET/.
+         SharePoint returns its own HTML login/error page for missing files,
+         causing "MIME type text/html is not a supported stylesheet/script
+         MIME type" errors in the browser console.
+
+         Fix: build an absolute base URL from _spPageContextInfo.webServer
+         RelativeUrl (always available in a SP page context) and load every
+         CSS and JS file dynamically so no relative URL resolution occurs.
+
+         _spPageContextInfo.webServerRelativeUrl is a server-relative path
+         such as "/sites/CET" — portable across hostname/IP changes.
+         ══════════════════════════════════════════════════════════════════ -->
+    <script>
+        (function () {
+            // ── Determine base URL ──────────────────────────────────────
+            var siteRel;
+            if (window._spPageContextInfo && _spPageContextInfo.webServerRelativeUrl) {
+                // Normal SP page / CEWP context
+                siteRel = _spPageContextInfo.webServerRelativeUrl.replace(/\/$/, '');
+            } else {
+                // Direct file access without SP master page (dev / offline).
+                // Extract /sites/SiteName from the current URL.
+                var m = window.location.pathname.match(/^(\/sites\/[^\/]+)/);
+                if (m) {
+                    siteRel = m[1];
+                } else {
+                    // Fallback: use current directory of the HTML file.
+                    var h = window.location.href;
+                    siteRel = null;
+                    window._PET_BASE = h.substring(0, h.lastIndexOf('/') + 1);
+                }
+            }
+            if (!window._PET_BASE) {
+                window._PET_BASE = siteRel + '/SiteAssets/PET/';
+            }
+
+            // ── Load CSS dynamically (absolute URLs) ────────────────────
+            var cssFiles = [
+                'CSS/bootstrap.min.css',
+                'CSS/style.css',
+                'CSS/dashboard.css',
+                'CSS/responsive.css',
+                'CSS/theme.css'
+            ];
+            cssFiles.forEach(function (href) {
+                var link  = document.createElement('link');
+                link.rel  = 'stylesheet';
+                link.type = 'text/css';
+                link.href = window._PET_BASE + href;
+                document.head.appendChild(link);
+            });
+        }());
+    </script>
+
+    <!-- ── Prevent FOUC ── -->
+    <style>
+        [ng\:cloak],[ng-cloak],.ng-cloak { display:none !important; }
+        #appLoader { position:fixed; top:0; left:0; width:100%; height:100%;
+                     background:#fff; z-index:9999; display:flex;
+                     align-items:center; justify-content:center; }
+    </style>
+</head>
+<body ng-cloak>
+
+    <!-- ── Initial loader shown before AngularJS bootstraps ── -->
+    <div id="appLoader">
+        <div class="text-center">
+            <div style="width:56px;height:56px;border:6px solid #e9ecef;border-top-color:#0078d4;
+                        border-radius:50%;animation:petSpin 0.9s linear infinite;margin:0 auto 12px;">
+            </div>
+            <style>@keyframes petSpin{to{transform:rotate(360deg)}}</style>
+            <p class="mt-2 text-muted">Initialising Falcon PET&hellip;</p>
+        </div>
+    </div>
+
+    <!-- ── Global notification bar ── -->
+    <div ng-include="'Templates/Partials/Notification.html'"></div>
+
+    <!-- ── Main application shell ── -->
+    <div id="appShell" class="app-shell" ng-controller="HomeController as vm">
+
+        <!-- Sidebar navigation -->
+        <div ng-include="'Templates/Partials/Sidebar.html'"></div>
+
+        <!-- Top header -->
+        <div ng-include="'Templates/Partials/Header.html'"></div>
+
+        <!-- Breadcrumb -->
+        <div ng-include="'Templates/Partials/Breadcrumb.html'"></div>
+
+        <!-- ── Route view ── -->
+        <main id="mainContent" class="main-content" role="main">
+            <div ng-view></div>
+        </main>
+
+        <!-- Footer -->
+        <div ng-include="'Templates/Partials/Footer.html'"></div>
+    </div>
+
+    <!-- ── Global confirmation dialog ── -->
+    <div ng-include="'Templates/Partials/ConfirmDialog.html'"></div>
+
+    <!-- ── Global loader overlay ── -->
+    <div id="globalLoader" class="global-loader" ng-show="$root.loading">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         Sequential JavaScript Loader
+         All scripts are loaded via JavaScript with absolute
+         URLs built from _PET_BASE (set above) so that URL
+         resolution is never left to the browser's relative-
+         path logic (which resolves against SitePages/ in a
+         CEWP context, not SiteAssets/PET/).
+
+         ng-app was removed from <html> above; Angular is
+         bootstrapped manually after every module is defined
+         to avoid the "Unknown provider: PETApp" error that
+         occurs when Angular auto-bootstraps before app.js
+         has been fetched.
+         ════════════════════════════════════════════════ -->
+    <script>
+        (function () {
+            var base = window._PET_BASE || '';
+
+            var scripts = [
+                // ── Vendor libraries ──
+                'JS/jquery.min.js',
+                'JS/bootstrap.min.js',
+                'JS/angular.min.js',
+                'JS/angular-route.min.js',
+                'JS/angular-resource.min.js',
+                'JS/angular-sanitize.min.js',
+                'Libraries/moment.min.js',
+                'Libraries/PapaParse.min.js',
+                'Libraries/xlsx.full.min.js',
+                'Libraries/Chart.min.js',
+                'Libraries/sweetalert2.all.min.js',
+                // ── Application core (ORDER MATTERS) ──
+                'app.js',
+                'constants.js',
+                'config.js',
+                'routes.js',
+                // ── Factories ──
+                'Factories/AppFactory.js',
+                'Factories/CacheFactory.js',
+                'Factories/CommonFactory.js',
+                // ── Services ──
+                'Services/SharePointService.js',
+                'Services/CRUDService.js',
+                'Services/AuthenticationService.js',
+                'Services/LookupService.js',
+                'Services/PeoplePickerService.js',
+                'Services/ValidationService.js',
+                'Services/UtilityService.js',
+                'Services/NotificationService.js',
+                'Services/EmailService.js',
+                'Services/AttachmentService.js',
+                'Services/CSVService.js',
+                'Services/JIRAService.js',
+                'Services/ApprovalService.js',
+                'Services/WorkflowService.js',
+                'Services/DashboardService.js',
+                'Services/HistoryService.js',
+                'Services/AutoCompleteService.js',
+                // ── Directives ──
+                'Directives/Loader.js',
+                'Directives/Notification.js',
+                'Directives/Modal.js',
+                'Directives/ConfirmationDialog.js',
+                'Directives/PeoplePicker.js',
+                'Directives/DatePicker.js',
+                'Directives/LookupDropdown.js',
+                'Directives/AutoComplete.js',
+                'Directives/FileUpload.js',
+                'Directives/Grid.js',
+                'Directives/Pagination.js',
+                // ── Filters ──
+                'Filters/DateFilter.js',
+                'Filters/StatusFilter.js',
+                'Filters/CurrencyFilter.js',
+                'Filters/SearchFilter.js',
+                // ── Controllers ──
+                'Controllers/HomeController.js',
+                'Controllers/DashboardController.js',
+                'Controllers/PETController.js',
+                'Controllers/ProjectController.js',
+                'Controllers/ProjectSizingController.js',
+                'Controllers/ApprovalController.js',
+                'Controllers/MyApprovalController.js',
+                'Controllers/CAPEXController.js',
+                'Controllers/OPEXController.js',
+                'Controllers/VendorController.js',
+                'Controllers/GLController.js',
+                'Controllers/RoleController.js',
+                'Controllers/EmailLogController.js',
+                'Controllers/JiraSyncController.js',
+                'Controllers/AdminController.js'
+            ];
+
+            function loadNext(idx) {
+                if (idx >= scripts.length) {
+                    // All scripts loaded — manually bootstrap AngularJS.
+                    // angular.bootstrap() is equivalent to the ng-app directive
+                    // but fires only after every module is fully defined.
+                    if (window.angular && angular.bootstrap) {
+                        angular.bootstrap(document.documentElement, ['PETApp']);
+                    }
+                    return;
+                }
+                var s   = document.createElement('script');
+                s.type  = 'text/javascript';
+                s.src   = base + scripts[idx];
+                s.onload  = function () { loadNext(idx + 1); };
+                s.onerror = function () {
+                    console.warn('[PET Loader] Failed to load: ' + s.src);
+                    loadNext(idx + 1); // skip and continue
+                };
+                document.body.appendChild(s);
+            }
+
+            loadNext(0);
+        }());
+    </script>
+</body>
+</html>
