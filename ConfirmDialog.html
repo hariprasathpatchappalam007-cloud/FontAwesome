@@ -1,0 +1,65 @@
+<!-- ConfirmDialog.html
+     Global confirmation modal. Triggered by UtilityService.confirm().
+     Sits outside ng-view so it's always available.
+-->
+<div id="confirmDialogOverlay"
+     class="confirm-dialog-overlay"
+     ng-show="$root.confirmDialog.visible"
+     ng-click="$root.confirmDialog.cancel()">
+
+    <div class="confirm-dialog"
+         ng-click="$event.stopPropagation()">
+
+        <div class="confirm-dialog-header">
+            <span class="confirm-dialog-title">
+                {{ $root.confirmDialog.title || 'Confirm' }}
+            </span>
+        </div>
+
+        <div class="confirm-dialog-body">
+            <p>{{ $root.confirmDialog.message }}</p>
+        </div>
+
+        <div class="confirm-dialog-footer">
+            <button type="button"
+                    class="btn btn-secondary"
+                    ng-click="$root.confirmDialog.cancel()">
+                {{ $root.confirmDialog.cancelLabel || 'Cancel' }}
+            </button>
+            <button type="button"
+                    class="btn btn-danger"
+                    ng-click="$root.confirmDialog.ok()">
+                {{ $root.confirmDialog.okLabel || 'Confirm' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .confirm-dialog-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.45);
+        z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .confirm-dialog {
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+        min-width: 320px; max-width: 480px; width: 100%;
+        overflow: hidden;
+    }
+    .confirm-dialog-header {
+        background: #0078d4;
+        color: #fff;
+        padding: 14px 20px;
+    }
+    .confirm-dialog-title { font-size: 1.05rem; font-weight: 600; }
+    .confirm-dialog-body  { padding: 20px; font-size: 0.95rem; color: #333; }
+    .confirm-dialog-body p { margin: 0; }
+    .confirm-dialog-footer {
+        padding: 12px 20px;
+        background: #f4f4f4;
+        display: flex; justify-content: flex-end; gap: 10px;
+    }
+</style>

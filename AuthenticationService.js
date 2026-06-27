@@ -22,7 +22,7 @@
 
                     _userPromise = SharePointService.getCurrentUser()
                         .then(function (spUser) {
-                            return self.getUserRoles(spUser.LoginName)
+                            return self.getUserRoles(spUser.Id)
                                 .then(function (roles) {
                                     return angular.extend(spUser, { roles: roles });
                                 });
@@ -38,11 +38,14 @@
                 /**
                  * Returns the application roles assigned to a user login name.
                  */
-                self.getUserRoles = function (loginName) {
+                // userId is the numeric SharePoint user Id (spUser.Id).
+                // Filtering by UserRefId (the hidden integer FK column) avoids the
+                // $expand+$select-on-sub-field requirement that causes a 400 on SP on-prem.
+                self.getUserRoles = function (userId) {
                     return CRUDService.getByFilter(
                         APP_CONST.LISTS.ROLE_MANAGEMENT,
-                        "UserRef/LoginName eq '" + encodeURIComponent(loginName) + "' and IsActive eq 1",
-                        { select: 'Id,AppRole,Department,UserRef/LoginName', expand: 'UserRef' }
+                        'UserRefId eq ' + userId + ' and IsActive eq 1',
+                        { select: 'Id,AppRole,Department' }
                     ).then(function (items) {
                         return items.map(function (i) { return i.AppRole; });
                     });

@@ -51,6 +51,9 @@
                 // Global loading flag (used by the overlay spinner)
                 $rootScope.loading = false;
 
+                // Initialise confirm dialog state so ng-show never throws on first render
+                $rootScope.confirmDialog = { visible: false };
+
                 // Current user stored on $rootScope for access in all controllers
                 $rootScope.currentUser  = null;
                 $rootScope.userRoles    = [];
