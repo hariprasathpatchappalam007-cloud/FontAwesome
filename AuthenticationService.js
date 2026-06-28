@@ -47,7 +47,10 @@
                         'UserRefId eq ' + userId + ' and IsActive eq 1',
                         { select: 'Id,AppRole,Department' }
                     ).then(function (items) {
-                        return items.map(function (i) { return i.AppRole; });
+                        var roles = items.map(function (i) { return i.AppRole; });
+                        // Any authenticated SP user with no explicit role gets Requestor
+                        // so they can at least access Dashboard and PET Workflow.
+                        return roles.length > 0 ? roles : ['Requestor'];
                     });
                 };
 

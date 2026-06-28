@@ -93,11 +93,16 @@
                         });
                         if (!hasRole) {
                             event.preventDefault();
+                            // MUST reset loading here — preventDefault() stops the route
+                            // so $routeChangeSuccess/$routeChangeError never fire.
+                            $rootScope.loading = false;
                             var NotificationService = getNotify();
                             if (NotificationService) {
                                 NotificationService.warning('You do not have permission to access this page.');
                             }
-                            $location.path('/dashboard');
+                            // Redirect to /home (no requiredRoles) — NOT /dashboard
+                            // which itself has requiredRoles and would create an infinite loop.
+                            $location.path('/home');
                         }
                     }
                 });

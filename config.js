@@ -44,8 +44,13 @@
                     if (digestCache && digestExpiry && new Date() < digestExpiry) {
                         return $q.resolve(digestCache);
                     }
+                    // Use the absolute site URL so the request goes to /sites/CET/_api/contextinfo
+                    // not the server root /_api/contextinfo (wrong site context).
+                    var contextUrl = (window._spPageContextInfo && _spPageContextInfo.webAbsoluteUrl)
+                        ? _spPageContextInfo.webAbsoluteUrl + '/_api/contextinfo'
+                        : '/_api/contextinfo';
                     var $http = $injector.get('$http');
-                    return $http.post('/_api/contextinfo', {}).then(function (res) {
+                    return $http.post(contextUrl, {}).then(function (res) {
                         digestCache  = res.data.d.GetContextWebInformation.FormDigestValue;
                         digestExpiry = new Date(
                             new Date().getTime() +
