@@ -52,8 +52,7 @@
 
         /* ── Remove padding/margin injected by s4-workspace ── */
         body.v4master,
-        body#BodyStyle,
-        body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+        body#BodyStyle { margin: 0 !important; padding: 0 !important; }
 
         /* ── Make s4-workspace fill the viewport ── */
         #s4-workspace {
@@ -173,15 +172,19 @@
         }());
     </script>
 
-    <!-- ── Prevent FOUC ── -->
+    <!-- ── Prevent FOUC: hide only the app shell until Angular removes ng-cloak ── -->
+    <!-- NOTE: do NOT put ng-cloak on <body> — the CEWP parser merges the second
+         <body> tag's attributes into the real SP master-page <body>, making the
+         entire page invisible until Angular removes ng-cloak (which it does on
+         <html>, not <body>). Use ng-cloak only on #appShell instead. -->
     <style>
-        [ng\:cloak],[ng-cloak],.ng-cloak { display:none !important; }
+        #appShell[ng-cloak], #appShell.ng-cloak { display:none !important; }
         #appLoader { position:fixed; top:0; left:0; width:100%; height:100%;
                      background:#fff; z-index:9999; display:flex;
                      align-items:center; justify-content:center; }
     </style>
 </head>
-<body ng-cloak>
+<body>
 
     <!-- ── Initial loader shown before AngularJS bootstraps ── -->
     <div id="appLoader">
@@ -198,7 +201,7 @@
     <div ng-include="'Templates/Partials/Notification.html'"></div>
 
     <!-- ── Main application shell ── -->
-    <div id="appShell" class="app-shell" ng-controller="HomeController as vm">
+    <div id="appShell" class="app-shell" ng-cloak ng-controller="HomeController as vm">
 
         <!-- Sidebar navigation -->
         <div ng-include="'Templates/Partials/Sidebar.html'"></div>
