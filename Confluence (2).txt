@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HFLMS Project Status</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #EEF1F5;
+    margin: 0;
+    padding: 32px;
+    color: #1B2733;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0B2545 0%, #123A63 100%);
+    border-radius: 10px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 24px;
+    border-left: 6px solid #C9A227;
+  }
+  .header h1 { margin: 0 0 4px 0; font-size: 24px; font-weight: 600; letter-spacing: .3px; }
+  .header p { margin: 0; font-size: 13px; color: #C7D3E0; }
+
+  /* Stat cards */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px 14px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(11,37,69,0.08);
+    border-top: 3px solid #C9A227;
+  }
+  .stat .num { font-size: 26px; font-weight: 700; color: #0B2545; line-height: 1; }
+  .stat .lbl { font-size: 11px; color: #5A6B7D; margin-top: 6px; text-transform: uppercase; letter-spacing: .4px; }
+
+  /* Progress bar */
+  .bar-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 28px;
+    box-shadow: 0 1px 3px rgba(11,37,69,0.08);
+  }
+  .bar-card h3 { margin: 0 0 12px 0; font-size: 13px; color: #0B2545; text-transform: uppercase; letter-spacing: .4px; }
+  .bar { display: flex; width: 100%; height: 22px; border-radius: 6px; overflow: hidden; }
+  .bar span { height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; font-size: 12px; color: #405066; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+  /* Section */
+  .section {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(11,37,69,0.08);
+    overflow: hidden;
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #E7EBF0;
+  }
+  .section-head h2 { margin: 0; font-size: 15px; color: #0B2545; font-weight: 600; }
+  .badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    padding: 3px 12px;
+    border-radius: 20px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: #5A6B7D;
+    background: #F7F9FB;
+    padding: 9px 20px;
+    border-bottom: 1px solid #E7EBF0;
+  }
+  td {
+    font-size: 13px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #F0F2F5;
+    color: #2B3846;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.sno { width: 36px; color: #8A97A6; }
+  td.id { width: 110px; font-family: Consolas, monospace; font-size: 12px; color: #0B2545; font-weight: 600; }
+  td.id a, td a.init-link { color: #0B2545; text-decoration: none; border-bottom: 1px solid #C9A227; }
+  td.id a:hover, td a.init-link:hover { color: #C9A227; }
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    background: #EAF3EA;
+    color: #2E7D32;
+  }
+  .empty { padding: 16px 20px; font-size: 13px; color: #8A97A6; font-style: italic; }
+  .note { font-size: 11.5px; color: #8A97A6; padding: 10px 20px 14px; }
+  .footer { text-align: center; font-size: 11px; color: #8A97A6; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>HFLMS &mdash; Project &amp; Initiative Status</h1>
+    <p>Home Finance LMS delivery pipeline &middot; Idea / Concepts to Go-Live</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num">34</div><div class="lbl">Total</div></div>
+    <div class="stat"><div class="num">16</div><div class="lbl">Completed</div></div>
+    <div class="stat"><div class="num">12</div><div class="lbl">In Progress</div></div>
+    <div class="stat"><div class="num">8</div><div class="lbl">Gone Live</div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">Cancelled</div></div>
+  </div>
+
+  <div class="bar-card">
+    <h3>Pipeline Distribution</h3>
+    <div class="bar">
+      <span style="width:47%; background:#2E7D32;" title="Completed 16"></span>
+      <span style="width:35%; background:#ED6C02;" title="Execution In Progress 12"></span>
+      <span style="width:12%; background:#0277BD;" title="HFLMS Support 4"></span>
+      <span style="width:6%; background:#7B4FA6;" title="Biz Review 2"></span>
+    </div>
+    <div class="legend">
+      <span><i style="background:#2E7D32;"></i>Completed &mdash; 16</span>
+      <span><i style="background:#ED6C02;"></i>Execution In Progress &mdash; 12</span>
+      <span><i style="background:#0277BD;"></i>HFLMS Support &mdash; 4</span>
+      <span><i style="background:#7B4FA6;"></i>Biz Review &mdash; 2</span>
+    </div>
+  </div>
+
+  <!-- Execution In Progress -->
+  <div class="section">
+    <div class="section-head">
+      <h2>Execution In Progress</h2>
+      <span class="badge" style="background:#ED6C02;">12</span>
+    </div>
+    <table>
+      <tr><th style="width:36px;">#</th><th style="width:110px;">Demand ID</th><th>Initiative</th></tr>
+      <tr><td class="sno">1</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-233" target="_blank" rel="noopener">DMGT-233</a></td><td>HF – Monthly rental EMI payment notification</td></tr>
+      <tr><td class="sno">2</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-442" target="_blank" rel="noopener">DMGT-442</a></td><td>Emirates Facial Recognition</td></tr>
+      <tr><td class="sno">3</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-443" target="_blank" rel="noopener">DMGT-443</a></td><td>DDA Cancellation</td></tr>
+      <tr><td class="sno">4</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-328" target="_blank" rel="noopener">DMGT-328</a></td><td>Add/Delete Customer – Post Sales</td></tr>
+      <tr><td class="sno">5</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-2135" target="_blank" rel="noopener">DMGT-2135</a></td><td>Frontline Hero Offer - HF</td></tr>
+      <tr><td class="sno">6</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1020" target="_blank" rel="noopener">DMGT-1020</a></td><td>Transact (T24) | Dedupe functionality Enhancement</td></tr>
+      <tr><td class="sno">7</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-947" target="_blank" rel="noopener">DMGT-947</a></td><td>Addition of customer name fields (Arabic) in HF LMS</td></tr>
+      <tr><td class="sno">8</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-698" target="_blank" rel="noopener">DMGT-698</a></td><td>DIB Legacy DMS Migration</td></tr>
+      <tr><td class="sno">9</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1842" target="_blank" rel="noopener">DMGT-1842</a></td><td>Emirates Facial Recognition (Phase 2)</td></tr>
+      <tr><td class="sno">10</td><td class="id">NA</td><td>Performance Improvement - CA Pages</td></tr>
+      <tr><td class="sno">11</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1792" target="_blank" rel="noopener">DMGT-1792</a></td><td>Digitization of HF contracts documents</td></tr>
+      <tr><td class="sno">12</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-253" target="_blank" rel="noopener">DMGT-253</a></td><td>Takaful Provider Integration &amp; Rate Management</td></tr>
+      <tr><td class="sno">13</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1272" target="_blank" rel="noopener">DMGT-1272</a></td><td>Input Validation Control (Individuals) - Channels/Platforms</td></tr>
+    </table>
+  </div>
+
+  <!-- Gone Live & Hand Over -->
+  <div class="section">
+    <div class="section-head">
+      <h2>Gone Live &amp; Hand Over</h2>
+      <span class="badge" style="background:#2E7D32;">8</span>
+    </div>
+    <table>
+      <tr><th style="width:36px;">#</th><th style="width:110px;">Demand ID</th><th>Initiative</th><th style="width:120px;">Go-Live Date</th></tr>
+      <tr><td class="sno">1</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1981" target="_blank" rel="noopener">DMGT-1981</a></td><td>Create a flag in HF LMS to identify the low doc customers</td><td><span class="pill">05-Jul-26</span></td></tr>
+      <tr><td class="sno">2</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-2046" target="_blank" rel="noopener">DMGT-2046</a></td><td>DR Module in HFLMS</td><td><span class="pill">05-Jul-26</span></td></tr>
+      <tr><td class="sno">3</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1260" target="_blank" rel="noopener">DMGT-1260</a></td><td>Climate Risk Data</td><td><span class="pill">21-Jun-26</span></td></tr>
+      <tr><td class="sno">4</td><td class="id">DMGT-1526</td><td>Printing/Embedding - QR code in Liability/Non-Liability Certificates</td><td><span class="pill">21-Jun-26</span></td></tr>
+      <tr><td class="sno">5</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-65" target="_blank" rel="noopener">DMGT-65</a></td><td>HF 48 freehold forward ijara</td><td><span class="pill">14-Jun-26</span></td></tr>
+      <tr><td class="sno">6</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-2165" target="_blank" rel="noopener">DMGT-2165</a></td><td>HFLMS Equity Release New Aggregator Process (processing fee) - Buyout</td><td><span class="pill">18-May-26</span></td></tr>
+      <tr><td class="sno">7</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1340" target="_blank" rel="noopener">DMGT-1340</a></td><td>AECB for Sales</td><td><span class="pill">03-May-26</span></td></tr>
+      <tr><td class="sno">8</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-1939" target="_blank" rel="noopener">DMGT-1939</a></td><td>HF Contract Mapping Changes</td><td><span class="pill">05-Apr-26</span></td></tr>
+    </table>
+    <div class="note">In 2026, 16 projects have gone live to date.</div>
+  </div>
+
+  <!-- HFLMS Support -->
+  <div class="section">
+    <div class="section-head">
+      <h2>HFLMS Support</h2>
+      <span class="badge" style="background:#0277BD;">4</span>
+    </div>
+    <table>
+      <tr><th style="width:36px;">#</th><th>Initiative</th></tr>
+      <tr><td class="sno">1</td><td><a class="init-link" href="https://agile.dib.ae/collaboration/display/MT/DIB+Legacy+DMS+Migration" target="_blank" rel="noopener">Migration of DIB Legacy to HFLMS</a></td></tr>
+      <tr><td class="sno">2</td><td><a class="init-link" href="https://agile.dib.ae/collaboration/display/MT/HFLMS+Server+Upgrade" target="_blank" rel="noopener">HFLMS Server Upgrade</a></td></tr>
+      <tr><td class="sno">3</td><td>ECD, SBF, MOI, Draw - Server Upgrade</td></tr>
+      <tr><td class="sno">4</td><td><a class="init-link" href="https://agile.dib.ae/collaboration/display/MT/MDM+C360+for+HFLMS" target="_blank" rel="noopener">MDM C360 for HFLMS</a></td></tr>
+    </table>
+  </div>
+
+  <!-- Biz Review -->
+  <div class="section">
+    <div class="section-head">
+      <h2>Biz Review</h2>
+      <span class="badge" style="background:#7B4FA6;">2</span>
+    </div>
+    <table>
+      <tr><th style="width:36px;">#</th><th style="width:110px;">Demand ID</th><th>Initiative</th></tr>
+      <tr><td class="sno">1</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-381" target="_blank" rel="noopener">DMGT-381</a></td><td>Automated Deferral Approval Workflow</td></tr>
+      <tr><td class="sno">2</td><td class="id"><a href="https://agile.dib.ae/planner/browse/DMGT-378" target="_blank" rel="noopener">DMGT-378</a></td><td>Score Card Policy - GHP Flag</td></tr>
+    </table>
+  </div>
+
+  <!-- Empty stages -->
+  <div class="section">
+    <div class="section-head">
+      <h2>BP Review &middot; DAG Review &middot; DAG Approved &middot; Cancelled</h2>
+      <span class="badge" style="background:#8A97A6;">0</span>
+    </div>
+    <div class="empty">No initiatives currently in these stages.</div>
+  </div>
+
+  <div class="footer">HFLMS Project Status &middot; Generated from Confluence_Status.xlsx</div>
+
+</div>
+</body>
+</html>
