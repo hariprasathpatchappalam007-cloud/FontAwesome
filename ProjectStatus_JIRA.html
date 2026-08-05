@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Status Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4efe4;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d8e0ea;
+      --nav: #132238;
+      --nav2: #1b3557;
+      --accent: #d97706;
+      --accent-soft: #fff3e0;
+      --green: #15803d;
+      --green-soft: #dcfce7;
+      --amber: #b45309;
+      --amber-soft: #fef3c7;
+      --red: #b91c1c;
+      --red-soft: #fee2e2;
+      --blue: #1d4ed8;
+      --blue-soft: #dbeafe;
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(217, 119, 6, 0.12), transparent 30%),
+        radial-gradient(circle at top right, rgba(29, 78, 216, 0.10), transparent 28%),
+        linear-gradient(180deg, #faf7f0 0%, #eef3f8 100%);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+
+    .shell {
+      display: flex;
+      min-height: 100vh;
+      align-items: stretch;
+    }
+
+    .sidebar {
+      width: 290px;
+      min-width: 290px;
+      background: linear-gradient(180deg, var(--nav) 0%, var(--nav2) 100%);
+      color: #fff;
+      padding: 26px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: 0.2px;
+    }
+
+    .brand p {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .nav-title {
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.60);
+    }
+
+    .nav {
+      display: grid;
+      gap: 10px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      padding: 12px 14px;
+      border-radius: 14px;
+      transition: transform 0.15s ease, background 0.15s ease;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .nav a:hover {
+      transform: translateX(2px);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .nav a span:last-child {
+      opacity: 0.7;
+      font-size: 12px;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.74);
+      line-height: 1.5;
+    }
+
+    .main {
+      flex: 1;
+      padding: 24px;
+      min-width: 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .hero-copy,
+    .hero-note,
+    .panel,
+    .card,
+    .table-wrap {
+      background: var(--panel);
+      border: 1px solid rgba(31, 41, 55, 0.08);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-copy {
+      padding: 24px;
+    }
+
+    .hero-copy h2 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      line-height: 1.1;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 900px;
+    }
+
+    .hero-note {
+      padding: 18px 20px;
+      background: linear-gradient(180deg, #fffaf2 0%, #fff 100%);
+      display: grid;
+      gap: 10px;
+      align-content: center;
+    }
+
+    .hero-note strong {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .hero-note div {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .section {
+      margin-top: 18px;
+    }
+
+    .section h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 18px;
+      background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
+    }
+
+    .card .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .card .value {
+      display: block;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .card .meta {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .card.total .value { color: var(--nav2); }
+    .card.delivery .value { color: var(--blue); }
+    .card.rtb .value { color: var(--accent); }
+    .card.live .value { color: var(--green); }
+    .card.pending .value { color: var(--red); }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .panel-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chip strong {
+      font-size: 12px;
+    }
+
+    .chip-go-live { background: var(--green-soft); color: var(--green); }
+    .chip-rtb { background: #ffedd5; color: #b45309; }
+    .chip-development { background: var(--blue-soft); color: var(--blue); }
+    .chip-pending { background: var(--red-soft); color: var(--red); }
+    .chip-other { background: #e2e8f0; color: #475569; }
+
+    .status-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 170px 56px 1fr;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .status-row .count {
+      text-align: right;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      background: #e8edf4;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .bar-go-live { background: linear-gradient(90deg, #22c55e, #15803d); }
+    .bar-rtb { background: linear-gradient(90deg, #f59e0b, #b45309); }
+    .bar-dev { background: linear-gradient(90deg, #60a5fa, #1d4ed8); }
+    .bar-pending { background: linear-gradient(90deg, #f87171, #b91c1c); }
+    .bar-other { background: linear-gradient(90deg, #94a3b8, #64748b); }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1700px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #10233b;
+      color: #fff;
+      padding: 12px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: left;
+      vertical-align: bottom;
+      white-space: nowrap;
+      z-index: 1;
+    }
+
+    tbody td {
+      padding: 10px 10px;
+      border-bottom: 1px solid #edf2f7;
+      font-size: 13px;
+      line-height: 1.45;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fbfcfe;
+    }
+
+    tbody tr:hover td {
+      background: #fff8ed;
+    }
+
+    td.num {
+      text-align: center;
+      font-weight: 700;
+      width: 52px;
+    }
+
+    td.center {
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    td.title {
+      min-width: 320px;
+    }
+
+    td.remark {
+      min-width: 260px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status-go-live { background: var(--green-soft); color: var(--green); }
+    .status-rtb { background: #ffedd5; color: #b45309; }
+    .status-development { background: var(--blue-soft); color: var(--blue); }
+    .status-pending { background: var(--red-soft); color: var(--red); }
+    .status-sit { background: #cffafe; color: #0f766e; }
+    .status-uat { background: #ede9fe; color: #7c3aed; }
+    .status-fsd { background: #fef9c3; color: #a16207; }
+    .status-grooming { background: #e2e8f0; color: #475569; }
+    .status-staging { background: #fce7f3; color: #be185d; }
+    .status-ea { background: #ecfccb; color: #4d7c0f; }
+
+    .note {
+      background: linear-gradient(180deg, #fffaf2 0%, #fff 100%);
+      border: 1px solid #fed7aa;
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: #7c2d12;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .footnote {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1180px) {
+      .shell { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        position: relative;
+      }
+      .hero { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel-head { flex-direction: column; }
+      .legend { justify-content: flex-start; }
+      .main { padding: 16px; }
+    }
+
+    @media (max-width: 760px) {
+      .cards { grid-template-columns: 1fr; }
+      .status-row { grid-template-columns: 1fr; }
+      .status-row .count { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Project Status</h1>
+        <p>Editable HTML for JIRA HTML macro</p>
+      </div>
+
+      <div>
+        <p class="nav-title">Navigation</p>
+        <nav class="nav">
+          <a href="#dashboard"><span>Dashboard</span><span>01</span></a>
+          <a href="#pipeline"><span>Status Snapshot</span><span>02</span></a>
+          <a href="#tracker"><span>Project Tracker</span><span>03</span></a>
+          <a href="#legend"><span>Legend</span><span>04</span></a>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        Source CSV<br />
+        C:\Users\Abinaya\Documents\Claude\Confluence\ProjectStatus\ProjectStatus.csv<br /><br />
+        Full page layout includes left navigation, dashboard cards, and the complete editable table.
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero">
+        <div class="hero-copy">
+          <h2>Project Status Dashboard</h2>
+          <p>
+            This page is structured for direct use in the JIRA HTML macro. It keeps the content editable,
+            uses a full-page layout with a left navigation rail, and renders the dashboard summary plus the
+            complete table sourced from ProjectStatus.csv.
+          </p>
+        </div>
+
+        <div class="hero-note">
+          <div><strong>Source</strong><div>C:\Users\Abinaya\Documents\Claude\Confluence\ProjectStatus\ProjectStatus.csv</div></div>
+          <div><strong>Coverage</strong><div>30 initiatives across 10 status bands</div></div>
+          <div><strong>Layout</strong><div>Dashboard, status snapshot, legend, and full tracker table</div></div>
+        </div>
+      </section>
+
+      <section id="dashboard" class="section">
+        <h3>Dashboard</h3>
+        <div class="cards">
+          <article class="card total">
+            <span class="label">Total Initiatives</span>
+            <span class="value">30</span>
+            <span class="meta">All rows from ProjectStatus.csv</span>
+          </article>
+          <article class="card delivery">
+            <span class="label">Active Delivery</span>
+            <span class="value">14</span>
+            <span class="meta">Grooming, FSD, EA, Development, SIT, UAT, and Staging</span>
+          </article>
+          <article class="card rtb">
+            <span class="label">RTB Handover</span>
+            <span class="value">10</span>
+            <span class="meta">Projects in handover state</span>
+          </article>
+          <article class="card live">
+            <span class="label">Go-Live</span>
+            <span class="value">3</span>
+            <span class="meta">Released items in production</span>
+          </article>
+          <article class="card pending">
+            <span class="label">Pending</span>
+            <span class="value">3</span>
+            <span class="meta">Items awaiting next action</span>
+          </article>
+        </div>
+      </section>
+
+      <section id="pipeline" class="section panel">
+        <div class="panel-head">
+          <div>
+            <h3>Status Snapshot</h3>
+            <p>Distribution of the current CSV by status band. The longest bar represents the most populated state.</p>
+          </div>
+          <div class="legend">
+            <span class="chip chip-go-live"><strong>Go-Live</strong> 3</span>
+            <span class="chip chip-rtb"><strong>RTB</strong> 10</span>
+            <span class="chip chip-development"><strong>Delivery</strong> 14</span>
+            <span class="chip chip-pending"><strong>Pending</strong> 3</span>
+            <span class="chip chip-other"><strong>Other</strong> 0</span>
+          </div>
+        </div>
+
+        <div class="status-grid">
+          <div class="status-row"><div>RTB - Handover</div><div class="count">10</div><div class="bar"><span class="bar-rtb" style="width:100%"></span></div></div>
+          <div class="status-row"><div>Development</div><div class="count">5</div><div class="bar"><span class="bar-dev" style="width:50%"></span></div></div>
+          <div class="status-row"><div>Go-Live</div><div class="count">3</div><div class="bar"><span class="bar-go-live" style="width:30%"></span></div></div>
+          <div class="status-row"><div>Pending</div><div class="count">3</div><div class="bar"><span class="bar-pending" style="width:30%"></span></div></div>
+          <div class="status-row"><div>FSD</div><div class="count">2</div><div class="bar"><span class="bar-other" style="width:20%"></span></div></div>
+          <div class="status-row"><div>SIT</div><div class="count">2</div><div class="bar"><span class="bar-other" style="width:20%"></span></div></div>
+          <div class="status-row"><div>UAT</div><div class="count">2</div><div class="bar"><span class="bar-other" style="width:20%"></span></div></div>
+          <div class="status-row"><div>Grooming</div><div class="count">1</div><div class="bar"><span class="bar-other" style="width:10%"></span></div></div>
+          <div class="status-row"><div>EA</div><div class="count">1</div><div class="bar"><span class="bar-other" style="width:10%"></span></div></div>
+          <div class="status-row"><div>Staging</div><div class="count">1</div><div class="bar"><span class="bar-other" style="width:10%"></span></div></div>
+        </div>
+      </section>
+
+      <section id="legend" class="section panel">
+        <div class="panel-head">
+          <div>
+            <h3>Legend</h3>
+            <p>Symbols and status colors used in the table below.</p>
+          </div>
+        </div>
+        <div class="legend" style="justify-content:flex-start; margin-bottom:12px;">
+          <span class="chip chip-other">&#10003; complete</span>
+          <span class="chip chip-other">&#10007; not complete</span>
+          <span class="chip chip-other">&ndash; not applicable</span>
+          <span class="chip chip-other">90% / 60% partial progress</span>
+        </div>
+        <div class="footnote">The structure is intentionally static so it remains editable when pasted into the JIRA HTML macro.</div>
+      </section>
+
+      <section id="tracker" class="section panel">
+        <div class="panel-head">
+          <div>
+            <h3>Project Tracker</h3>
+            <p>Complete table built from ProjectStatus.csv. The status column uses colored badges for quick scanning.</p>
+          </div>
+          <div class="note">All content is in editable HTML. Replace or update the table rows directly in Confluence/JIRA as needed.</div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sno</th>
+                <th>JIRA ID</th>
+                <th>Initiative / Title</th>
+                <th>Status</th>
+                <th>Grooming</th>
+                <th>FSD</th>
+                <th>EA</th>
+                <th>Dev</th>
+                <th>SIT</th>
+                <th>UAT</th>
+                <th>Staging</th>
+                <th>Go-Live</th>
+                <th>RTB Hd ovr</th>
+                <th>Cur Act Comp Dt</th>
+                <th>Nxt Act Strt Dt</th>
+                <th>Go-live Dt</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="num">1</td><td>DMGT-22</td><td class="title">ESG Millionaire Draw / ESG Millionaire ECD</td><td><span class="status-badge status-go-live">Go-Live</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">16-Aug-26</td><td class="center"></td><td class="center">16-Aug-26</td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">2</td><td>DMGT-65</td><td class="title">HF48 - Phase 1</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Pending with Shoaib</td>
+              </tr>
+              <tr>
+                <td class="num">3</td><td>DMGT-253</td><td class="title">HF-Product Takaful Provider Integration and Rate Management</td><td><span class="status-badge status-fsd">FSD</span></td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Base line 1 - TBD</td>
+              </tr>
+              <tr>
+                <td class="num">4</td><td>DMGT-328</td><td class="title">Addition and Deletion Customer Details in HFLMS</td><td><span class="status-badge status-staging">Staging</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">14-Aug-26</td><td class="center">23-Aug-26</td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">5</td><td>DMGT-407</td><td class="title">Dated Security Cheque Printing (HFLMS &amp; FinnOne)</td><td><span class="status-badge status-pending">Pending</span></td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Pipeline-With business</td>
+              </tr>
+              <tr>
+                <td class="num">6</td><td>DMGT-442</td><td class="title">HF Emirates Face Recognition (EFR) - Phase 1</td><td><span class="status-badge status-go-live">Go-Live</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">09-Aug-26</td><td class="center"></td><td class="center"></td><td class="remark">Blocked - GIS approval - Pen testing, Release preparation, Port opening-Kafka, Biz, RTB alignmnt</td>
+              </tr>
+              <tr>
+                <td class="num">7</td><td>DMGT-443</td><td class="title">DDA Cancellation</td><td><span class="status-badge status-uat">UAT</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">90%</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">03-Aug-26</td><td class="center">06-Sep-26</td><td class="center"></td><td class="remark">UAT is blocked due to DDA presentment prod issue.</td>
+              </tr>
+              <tr>
+                <td class="num">8</td><td>DMGT-698</td><td class="title">Migration of DIB Legacy to HFLMS</td><td><span class="status-badge status-ea">EA</span></td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&#10007;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">TBD</td><td class="center">TBD</td><td class="center"></td><td class="remark">Awaiting EA solution, Dev &amp; SIT completed.</td>
+              </tr>
+              <tr>
+                <td class="num">9</td><td>DMGT-947</td><td class="title">Addition of customer name fields(Arabic) HF LMS</td><td><span class="status-badge status-sit">SIT</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">06-Aug-26</td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">10</td><td>DMGT-1020</td><td class="title">Dedup Logic Controls in DIB Customer Onboarding Platforms</td><td><span class="status-badge status-development">Development</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">02-Oct-26</td><td class="center">TBD</td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">11</td><td>DMGT-1260</td><td class="title">ESD - Climate Risk Data</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">NA</td><td class="center">NA</td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">12</td><td>DMGT-1272</td><td class="title">Input Fields Validation</td><td><span class="status-badge status-fsd">FSD</span></td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">NA</td><td class="center">NA</td><td class="center"></td><td class="remark">Base line 1 - TBD</td>
+              </tr>
+              <tr>
+                <td class="num">13</td><td>DMGT-1340</td><td class="title">AECB for Sales</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center"></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Pending with Shoaib</td>
+              </tr>
+              <tr>
+                <td class="num">14</td><td>DMGT-1406</td><td class="title">CPR Personal Data Consent Management</td><td><span class="status-badge status-grooming">Grooming</span></td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">15</td><td>DMGT-1416</td><td class="title">MBRE Non Subsidy</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Pending with Arya</td>
+              </tr>
+              <tr>
+                <td class="num">16</td><td>DMGT-1525</td><td class="title">EMX Delivery Partner</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&ndash;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Support Project</td>
+              </tr>
+              <tr>
+                <td class="num">17</td><td>DMGT-1526</td><td class="title">QR code Liability and Non-Liability Letter</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center"></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">18</td><td>DMGT-1792</td><td class="title">Digitization of HF contract documents and contract mapping</td><td><span class="status-badge status-development">Development</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">90%</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">05-Aug-26</td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">19</td><td>DMGT-1825</td><td class="title">CRAT PGL Issue - LAST REVIEW DATE not passed to CRAT</td><td><span class="status-badge status-pending">Pending</span></td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">20</td><td>DMGT-1842</td><td class="title">EFR billing</td><td><span class="status-badge status-development">Development</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">04-Aug-26</td><td class="center">15-Sep-26</td><td class="center">15-Sep-26</td><td class="remark">Development Completed. SIT will start from 15/09/2026</td>
+              </tr>
+              <tr>
+                <td class="num">21</td><td>DMGT-1943</td><td class="title">HF48 Phase 2</td><td><span class="status-badge status-development">Development</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">60%</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">21-Aug-26</td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">22</td><td>DMGT-1966</td><td class="title">Duplicate CIF Linkage of closed customer</td><td><span class="status-badge status-development">Development</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">23</td><td>DMGT-1981</td><td class="title">Create a flag in HF LMS to identify the low doc customers</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">24</td><td>DMGT-2046</td><td class="title">DR Module</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">25</td><td>DMGT-2135</td><td class="title">Frontline hero offer HF / Frontliner Hero</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">26</td><td>DMGT-341</td><td class="title">CIF data enhancements</td><td><span class="status-badge status-rtb">RTB - Handover</span></td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">27</td><td>DMGT-1639</td><td class="title">DDA cancellation and registration setup for non-DIB entities</td><td><span class="status-badge status-pending">Pending</span></td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">28</td><td>NA</td><td class="title">Payment Flag in the MRC Report - Production issue</td><td><span class="status-badge status-go-live">Go-Live</span></td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+              <tr>
+                <td class="num">29</td><td>NA</td><td class="title">Aftersales Performance Improvement</td><td><span class="status-badge status-sit">SIT</span></td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark">Interim Pages: SIT in progress</td>
+              </tr>
+              <tr>
+                <td class="num">30</td><td>NA</td><td class="title">MO51 &amp; MO53 in UAT - QR Code</td><td><span class="status-badge status-uat">UAT</span></td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&ndash;</td><td class="center">&#10003;</td><td class="center">&#10003;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center">&#10007;</td><td class="center"></td><td class="center"></td><td class="center"></td><td class="remark"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
