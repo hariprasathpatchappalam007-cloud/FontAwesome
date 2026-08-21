@@ -1,0 +1,285 @@
+Currently I need to call the below function in multiple pages to check if the user is authorized or not.
+I want you to simplify to write in a single place & the relative path of login.aspx also varies from the page that from accessed to 
+& also ensure that the function that I have written also it looks complex, please simplfy 
+Also in the below function Somebody apply the logic like http://10.224.3.14/lms/workflow/applicationDataeentry.aspx/ it wornt work because '/' is ammended
+
+ if (!IsAuthorizedUser())
+            {
+                Response.Redirect("../login.aspx");
+            }
+
+  
+
+public bool IsAuthorizedUser()
+        {
+
+            DataSet dsConfigurationandAccess = new DataSet(); ;
+            string[] pageNames = HttpContext.Current.Request.CurrentExecutionFilePath.Split('/');
+            string pageName = string.Empty;
+            /* for (int lintPageName = 0; lintPageName < pageNames.Length; lintPageName++)
+             {
+                 if (pageNames[lintPageName].ToUpper().Contains(".ASPX"))
+                 {
+                     pageName = pageNames[lintPageName];
+                 }
+             }*/
+            pageName = pageNames[pageNames.Length - 1];
+            Session["pageName"] = pageName;
+            string userName = Convert.ToString(Session["USERID"]);
+            string _sqlAccessQuery = string.Empty;
+            string _sqlAuthorizedPagesQuery = string.Empty;
+            string _sqlAllMenus = string.Empty;
+            string _sqlQuery = string.Empty;
+            string[] _arrQuerystring = HttpContext.Current.Request.QueryString.AllKeys;
+            string queryStringKey = _arrQuerystring.Length > 0 ? _arrQuerystring[0] : string.Empty;
+
+            //Check if the current page have query string
+
+
+            string sessionName = Session["USERID"] != null ? userName.ToUpper() : string.Empty;
+            DataTable dtQueryString = new DataTable();
+            DataTable dtRoleMaster = new DataTable();
+            DataTable dtMenuMaster = new DataTable();
+
+            //Query to get the access to the current page 
+            _sqlAccessQuery = "SELECT MNU.Menu_filename FILENAME, MNU.Menu_Role ROLE, RLE.Status STATUS, USR.loginid LOGINID  FROM FRM_MENU MNU" +
+                                            " INNER JOIN FRM_USERROLE RLE ON MNU.Menu_Role = RLE.USER_ROLE" +
+                                            " INNER JOIN FRM_USER USR ON RLE.USER_USERID = USR.LoginID" +
+                                            " WHERE MNU.Menu_filename LIKE '%" + pageName + @"%' and RLE.Status = 'A' AND MNU.Status= 'A'  AND USR.Status = 'A'" +
+                                            " AND upper(USR.loginid) = '" + sessionName + @"';";
+
+            _sqlAuthorizedPagesQuery = " select * from frm_gnarr where Code = 'Qry_str' and Status='A' AND value = '" + queryStringKey + "'";
+            _sqlAllMenus = "SELECT MNU.Menu_filename FILENAME, MNU.Menu_Role ROLE FROM FRM_MENU MNU where upper(MNU.Menu_filename) like '%" + pageName.ToString().ToUpper() + @"%';";
+            _sqlQuery = _sqlAuthorizedPagesQuery + _sqlAccessQuery + _sqlAllMenus;
+
+            //string qryString = HttpRequest.QueryString[""];
+
+
+            //Get the list of authenticated pages from configuration file
+            dsConfigurationandAccess = ExecuteQuery(_sqlQuery);
+            if (dsConfigurationandAccess != null && dsConfigurationandAccess.Tables.Count > 2)
+            {
+                dtQueryString = dsConfigurationandAccess.Tables[0];
+                dtRoleMaster = dsConfigurationandAccess.Tables[1];
+                dtMenuMaster = dsConfigurationandAccess.Tables[2];
+            }
+
+            //query string to be verified for this current page
+            if (dtQueryString.Rows.Count > 0)
+            {
+                dtQueryString.Rows[0]["Value"].ToString();
+                pageNames = HttpContext.Current.Request.RawUrl.Split('/');
+                pageName = pageNames[pageNames.Length - 1];
+            }
+            pageName = HttpUtility.UrlDecode(pageName); // Hariprasath on 26-05-2022> Production fix - Url decode - Agent service master 
+            if (!string.IsNullOrEmpty(userName))
+            {
+                //Check whether the pge is part of the configuration table, it will go inside the below function
+
+                try
+                {
+                    if (dtMenuMaster.Rows.Count > 0)
+                    {
+                        //Check If the page is part of Menu master, User have access to the page
+                        if (dtRoleMaster.Rows.Count > 0)
+                        {
+                            for (int lint = 0; lint < dtRoleMaster.Rows.Count; lint++)
+                            {
+                                string _strPath = dtRoleMaster.Rows[lint]["FILENAME"] != null ? dtRoleMaster.Rows[lint]["FILENAME"].ToString() : string.Empty;
+                                if (_strPath.Split('/')[_strPath.Split('/').Length - 1].ToString().Equals(pageName, StringComparison.InvariantCultureIgnoreCase))
+                                {
+
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //If the page is not part of the menu master, it is anonumous page
+
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                    return false;
+                    throw (ex);
+                }
+                finally
+                {
+                    dsConfigurationandAccess = null;
+                    _sqlQuery = string.Empty;
+                }
+
+            }
+            if (pageName.Split('.').Length > 0 && pageName.Split('.')[1].ToString().Equals("asmx", StringComparison.InvariantCultureIgnoreCase))
+                return true;
+
+
+            return false;
+        }
+
+
+Suggested implementation
+=======================
+
+Create one common base page and inherit all protected ASPX pages from it. This removes the authorization call from every page and avoids relative login paths.
+
+AuthorizedPage.cs
+-----------------
+
+using System;
+using System.Data;
+using System.Web;
+using System.Web.UI;
+
+public abstract class AuthorizedPage : Page
+{
+    protected override void OnInit(EventArgs e)
+    {
+        base.OnInit(e);
+
+        if (!IsAuthorizedUser())
+        {
+            Response.Redirect(
+                VirtualPathUtility.ToAbsolute("~/login.aspx"),
+                false);
+
+            Context.ApplicationInstance.CompleteRequest();
+        }
+    }
+
+    private bool IsAuthorizedUser()
+    {
+        string userName = Convert.ToString(Session["USERID"]);
+
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            return false;
+        }
+
+        string pageName = GetFileName(Request.Path);
+        Session["pageName"] = pageName;
+
+        string queryStringKey = Request.QueryString.AllKeys.Length > 0
+            ? Request.QueryString.AllKeys[0]
+            : string.Empty;
+
+        string sql = @"
+            SELECT MNU.Menu_filename AS FILENAME,
+                   MNU.Menu_Role AS ROLE,
+                   RLE.Status AS STATUS,
+                   USR.loginid AS LOGINID
+            FROM FRM_MENU MNU
+            INNER JOIN FRM_USERROLE RLE
+                ON MNU.Menu_Role = RLE.USER_ROLE
+            INNER JOIN FRM_USER USR
+                ON RLE.USER_USERID = USR.LoginID
+            WHERE UPPER(MNU.Menu_filename) LIKE :PAGE_NAME
+              AND RLE.Status = 'A'
+              AND MNU.Status = 'A'
+              AND USR.Status = 'A'
+              AND UPPER(USR.loginid) = :USER_ID";
+
+        // Pass PAGE_NAME and USER_ID as parameters using the existing database helper.
+        DataSet accessData = ExecuteQuery(sql, new
+        {
+            PAGE_NAME = "%" + pageName.ToUpperInvariant() + "%",
+            USER_ID = userName.ToUpperInvariant()
+        });
+
+        if (accessData == null || accessData.Tables.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (DataRow row in accessData.Tables[0].Rows)
+        {
+            string configuredPath = Convert.ToString(row["FILENAME"]);
+
+            if (string.Equals(
+                    GetFileName(configuredPath),
+                    pageName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return IsAnonymousPage(queryStringKey);
+    }
+
+    private static string GetFileName(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        string cleanPath = HttpUtility.UrlDecode(path)
+            .Split('?')[0]
+            .TrimEnd('/');
+
+        int lastSlash = cleanPath.LastIndexOf('/');
+
+        return lastSlash >= 0
+            ? cleanPath.Substring(lastSlash + 1)
+            : cleanPath;
+    }
+
+    private bool IsAnonymousPage(string queryStringKey)
+    {
+        return GetFileName(Request.Path).EndsWith(
+                   ".asmx",
+                   StringComparison.OrdinalIgnoreCase)
+               || IsQueryStringConfigured(queryStringKey);
+    }
+
+    private bool IsQueryStringConfigured(string queryStringKey)
+    {
+        const string sql = @"
+            SELECT 1
+            FROM frm_gnarr
+            WHERE Code = 'Qry_str'
+              AND Status = 'A'
+              AND Value = :QUERY_STRING_KEY";
+
+        DataSet result = ExecuteQuery(sql, new
+        {
+            QUERY_STRING_KEY = queryStringKey
+        });
+
+        return result != null
+               && result.Tables.Count > 0
+               && result.Tables[0].Rows.Count > 0;
+    }
+
+    private DataSet ExecuteQuery(string sql, object parameters)
+    {
+        // Replace this call with the application's existing parameterized DB helper.
+        throw new NotImplementedException();
+    }
+}
+
+
+Usage in every protected ASPX page
+----------------------------------
+
+Change this:
+
+public partial class ApplicationDataEntry : Page
+
+To this:
+
+public partial class ApplicationDataEntry : AuthorizedPage
+
+
+Important points
+----------------
+
+1. Use "~/login.aspx" so the redirect works from every folder.
+2. GetFileName trims trailing '/' so /workflow/applicationDataeentry.aspx/ is handled correctly.
+3. Use parameterized SQL for PAGE_NAME, USER_ID, and QUERY_STRING_KEY.
+4. Remove the individual IsAuthorizedUser calls from the ASPX pages.
