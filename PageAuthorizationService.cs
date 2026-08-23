@@ -250,6 +250,11 @@ public class PageAuthorizationService
 
         string normalized = HttpUtility.UrlDecode(path).Trim();
 
+        while (normalized.Length > 0 && normalized.StartsWith("/", StringComparison.Ordinal))
+        {
+            normalized = normalized.Substring(1);
+        }
+
         while (normalized.Length > 1 && normalized.EndsWith("/", StringComparison.Ordinal))
         {
             normalized = normalized.Substring(0, normalized.Length - 1);
