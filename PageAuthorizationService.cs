@@ -188,7 +188,7 @@ public class PageAuthorizationService
         string[] parts = HttpUtility.UrlDecode(menuFileName).Split('?');
         string menuPath = NormalizePath(parts[0]);
 
-        if (!string.Equals(menuPath, requestPath, StringComparison.OrdinalIgnoreCase))
+        if (!IsPathMatch(menuPath, requestPath))
         {
             reason = "Path mismatch. MenuPath=" + menuPath + "; RequestPath=" + requestPath;
             return false;
@@ -308,6 +308,26 @@ public class PageAuthorizationService
         }
 
         return normalized;
+    }
+
+    private static bool IsPathMatch(string menuPath, string requestPath)
+    {
+        if (string.IsNullOrWhiteSpace(menuPath) || string.IsNullOrWhiteSpace(requestPath))
+        {
+            return false;
+        }
+
+        if (string.Equals(menuPath, requestPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Handle virtual directory prefixes on server, e.g. lms_dev/WORKFLOW/Page.aspx
+        // should match menu path WORKFLOW/Page.aspx.
+        string normalizedMenu = NormalizePath(menuPath);
+        string normalizedRequest = NormalizePath(requestPath);
+
+        return normalizedRequest.EndsWith("/" + normalizedMenu, StringComparison.OrdinalIgnoreCase);
     }
 
     private void LogTrace(string requestId, string message)
