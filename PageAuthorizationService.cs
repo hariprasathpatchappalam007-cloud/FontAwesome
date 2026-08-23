@@ -12,8 +12,10 @@ public class PageAuthorizationService
         _connectionString = connectionString;
     }
 
-    public bool IsAuthorizedUser(HttpContext context)
+    public bool IsAuthorizedUser()
     {
+        HttpContext context = HttpContext.Current;
+
         if (context == null)
         {
             return false;
@@ -88,21 +90,17 @@ public class PageAuthorizationService
     }
 }
 
-public abstract class AuthorizedPage : System.Web.UI.Page
+public static class AuthorizationCaller
 {
-    protected raqValidation objRaqValidation = new raqValidation();
-
-    protected override void OnInit(EventArgs e)
+    public static void ValidateCurrentRequest(raqValidation objRaqValidation)
     {
-        base.OnInit(e);
-
         string con = objRaqValidation.getAppSettings("SqlConnectionString");
         PageAuthorizationService authService = new PageAuthorizationService(con);
 
-        if (!authService.IsAuthorizedUser(HttpContext.Current))
+        if (!authService.IsAuthorizedUser())
         {
-            Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), false);
-            Context.ApplicationInstance.CompleteRequest();
+            HttpContext.Current.Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), false);
+            HttpContext.Current.ApplicationInstance.CompleteRequest();
         }
     }
 }
