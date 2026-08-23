@@ -12,6 +12,7 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @NormalizedPath NVARCHAR(500);
+    DECLARE @NormalizedPathNoLead NVARCHAR(500);
     DECLARE @QuestionIndex INT;
 
     SET @NormalizedPath = UPPER(LTRIM(RTRIM(ISNULL(@RequestPath, ''))));
@@ -23,6 +24,11 @@ BEGIN
     WHILE LEN(@NormalizedPath) > 1 AND RIGHT(@NormalizedPath, 1) = '/'
         SET @NormalizedPath = LEFT(@NormalizedPath, LEN(@NormalizedPath) - 1);
 
+    -- Remove leading slash so '/WORKFLOW/PAGE.ASPX' and 'WORKFLOW/PAGE.ASPX' match.
+    SET @NormalizedPathNoLead = @NormalizedPath;
+    WHILE LEN(@NormalizedPathNoLead) > 0 AND LEFT(@NormalizedPathNoLead, 1) = '/'
+        SET @NormalizedPathNoLead = SUBSTRING(@NormalizedPathNoLead, 2, LEN(@NormalizedPathNoLead));
+
     ;WITH MenuData AS
     (
         SELECT
@@ -32,6 +38,26 @@ BEGIN
                     THEN LEFT(UPPER(LTRIM(RTRIM(MNU.Menu_filename))), CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) - 1)
                 ELSE UPPER(LTRIM(RTRIM(MNU.Menu_filename)))
             END AS MenuPathOnly,
+            CASE
+                WHEN LEFT(
+                    CASE
+                        WHEN CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) > 0
+                            THEN LEFT(UPPER(LTRIM(RTRIM(MNU.Menu_filename))), CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) - 1)
+                        ELSE UPPER(LTRIM(RTRIM(MNU.Menu_filename)))
+                    END, 1) = '/'
+                    THEN SUBSTRING(
+                        CASE
+                            WHEN CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) > 0
+                                THEN LEFT(UPPER(LTRIM(RTRIM(MNU.Menu_filename))), CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) - 1)
+                            ELSE UPPER(LTRIM(RTRIM(MNU.Menu_filename)))
+                        END, 2, 500)
+                ELSE
+                    CASE
+                        WHEN CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) > 0
+                            THEN LEFT(UPPER(LTRIM(RTRIM(MNU.Menu_filename))), CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) - 1)
+                        ELSE UPPER(LTRIM(RTRIM(MNU.Menu_filename)))
+                    END
+            END AS MenuPathNoLead,
             UPPER(LTRIM(RTRIM(MNU.Menu_Role))) AS MenuRole,
             MNU.Status AS MenuStatus
         FROM FRM_MENU MNU
@@ -58,10 +84,21 @@ BEGIN
       AND U.UserStatus = 'A'
       AND U.UserRoleStatus = 'A'
       AND M.MenuStatus = 'A'
-      AND CASE
-              WHEN LEN(M.MenuPathOnly) > 1 AND RIGHT(M.MenuPathOnly, 1) = '/'
-                  THEN LEFT(M.MenuPathOnly, LEN(M.MenuPathOnly) - 1)
-              ELSE M.MenuPathOnly
-          END = @NormalizedPath;
+      AND
+      (
+          -- Exact match after normalizing leading slash.
+          CASE
+              WHEN LEN(M.MenuPathNoLead) > 1 AND RIGHT(M.MenuPathNoLead, 1) = '/'
+                  THEN LEFT(M.MenuPathNoLead, LEN(M.MenuPathNoLead) - 1)
+              ELSE M.MenuPathNoLead
+          END = @NormalizedPathNoLead
+          OR
+          -- Support request path with app prefix, e.g. 'LMS/WORKFLOW/PAGE.ASPX'.
+          @NormalizedPathNoLead LIKE '%/' + CASE
+                                               WHEN LEN(M.MenuPathNoLead) > 1 AND RIGHT(M.MenuPathNoLead, 1) = '/'
+                                                   THEN LEFT(M.MenuPathNoLead, LEN(M.MenuPathNoLead) - 1)
+                                               ELSE M.MenuPathNoLead
+                                           END
+      );
 END
 GO
