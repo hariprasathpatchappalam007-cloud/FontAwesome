@@ -6,8 +6,7 @@ GO
 
 CREATE PROCEDURE dbo.usp_IsUserAuthorizedForPage
     @LoginId NVARCHAR(100),
-    @RequestPath NVARCHAR(500),
-    @RoleFromQuery NVARCHAR(100) = NULL
+    @RequestPath NVARCHAR(500)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -28,6 +27,11 @@ BEGIN
     (
         SELECT
             UPPER(LTRIM(RTRIM(MNU.Menu_filename))) AS MenuFileName,
+            CASE
+                WHEN CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) > 0
+                    THEN LEFT(UPPER(LTRIM(RTRIM(MNU.Menu_filename))), CHARINDEX('?', UPPER(LTRIM(RTRIM(MNU.Menu_filename)))) - 1)
+                ELSE UPPER(LTRIM(RTRIM(MNU.Menu_filename)))
+            END AS MenuPathOnly,
             UPPER(LTRIM(RTRIM(MNU.Menu_Role))) AS MenuRole,
             MNU.Status AS MenuStatus
         FROM FRM_MENU MNU
@@ -43,8 +47,7 @@ BEGIN
         INNER JOIN FRM_USERROLE RLE
             ON RLE.USER_USERID = USR.LoginID
     )
-    SELECT TOP 1
-        CAST(1 AS BIT) AS IsAuthorized,
+    SELECT
         M.MenuFileName,
         M.MenuRole,
         U.LoginId
@@ -55,25 +58,10 @@ BEGIN
       AND U.UserStatus = 'A'
       AND U.UserRoleStatus = 'A'
       AND M.MenuStatus = 'A'
-      AND
-      (
-          M.MenuFileName = @NormalizedPath
-          OR
-          (
-              @RoleFromQuery IS NOT NULL
-              AND LTRIM(RTRIM(@RoleFromQuery)) <> ''
-              AND M.MenuRole = UPPER(LTRIM(RTRIM(@RoleFromQuery)))
-              AND
-              (
-                  M.MenuFileName = @NormalizedPath
-                  OR M.MenuFileName = (@NormalizedPath + '?ROLE=' + UPPER(LTRIM(RTRIM(@RoleFromQuery))))
-              )
-          )
-      );
-
-    IF @@ROWCOUNT = 0
-    BEGIN
-        SELECT CAST(0 AS BIT) AS IsAuthorized;
-    END
+      AND CASE
+              WHEN LEN(M.MenuPathOnly) > 1 AND RIGHT(M.MenuPathOnly, 1) = '/'
+                  THEN LEFT(M.MenuPathOnly, LEN(M.MenuPathOnly) - 1)
+              ELSE M.MenuPathOnly
+          END = @NormalizedPath;
 END
 GO

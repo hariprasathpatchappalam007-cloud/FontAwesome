@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Web;
@@ -33,19 +34,32 @@ public class PageAuthorizationService
             return false;
         }
 
-        string roleFromQuery = context.Request.QueryString["ROLE"];
-        DataSet ds = ExecuteAuthorizationProcedure(userName, normalizedRequestPath, roleFromQuery);
+        HashSet<string> configuredKeys = GetConfiguredQueryKeys();
+        configuredKeys.Add("ROLE");
+
+        Dictionary<string, string> requestQuery = ReadRequestQuery(context.Request.QueryString);
+        DataSet ds = ExecuteAuthorizationProcedure(userName, normalizedRequestPath);
 
         if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
         {
             return false;
         }
 
-        object isAuthorized = ds.Tables[0].Rows[0]["IsAuthorized"];
-        return isAuthorized != DBNull.Value && Convert.ToBoolean(isAuthorized);
+        DataTable menuRows = ds.Tables[0];
+
+        foreach (DataRow row in menuRows.Rows)
+        {
+            string menuFileName = Convert.ToString(row["MenuFileName"]);
+            if (IsMenuMatch(menuFileName, normalizedRequestPath, requestQuery, configuredKeys))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    private DataSet ExecuteAuthorizationProcedure(string userName, string requestPath, string roleFromQuery)
+    private DataSet ExecuteAuthorizationProcedure(string userName, string requestPath)
     {
         DataSet dataSet = new DataSet();
 
@@ -57,19 +71,174 @@ public class PageAuthorizationService
             cmd.Parameters.AddWithValue("@LoginId", userName ?? string.Empty);
             cmd.Parameters.AddWithValue("@RequestPath", requestPath ?? string.Empty);
 
-            if (string.IsNullOrWhiteSpace(roleFromQuery))
-            {
-                cmd.Parameters.AddWithValue("@RoleFromQuery", DBNull.Value);
-            }
-            else
-            {
-                cmd.Parameters.AddWithValue("@RoleFromQuery", roleFromQuery);
-            }
-
             adapter.Fill(dataSet);
         }
 
         return dataSet;
+    }
+
+    private HashSet<string> GetConfiguredQueryKeys()
+    {
+        HashSet<string> keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        using (SqlCommand cmd = new SqlCommand("SELECT Value FROM frm_gnarr WHERE Code = @Code AND Status = 'A'", conn))
+        using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+        {
+            cmd.CommandType = CommandType.Text;
+            cmd.Parameters.AddWithValue("@Code", "Qry_str");
+
+            DataTable dt = new DataTable();
+            adapter.Fill(dt);
+
+            foreach (DataRow row in dt.Rows)
+            {
+                string key = Convert.ToString(row["Value"]);
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    keys.Add(key.Trim());
+                }
+            }
+        }
+
+        return keys;
+    }
+
+    private static Dictionary<string, string> ReadRequestQuery(System.Collections.Specialized.NameValueCollection queryString)
+    {
+        Dictionary<string, string> data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (queryString == null)
+        {
+            return data;
+        }
+
+        string[] allKeys = queryString.AllKeys;
+        if (allKeys == null)
+        {
+            return data;
+        }
+
+        for (int i = 0; i < allKeys.Length; i++)
+        {
+            string key = allKeys[i];
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            string value = queryString[key] ?? string.Empty;
+            data[key.Trim()] = value.Trim();
+        }
+
+        return data;
+    }
+
+    private static bool IsMenuMatch(
+        string menuFileName,
+        string requestPath,
+        Dictionary<string, string> requestQuery,
+        HashSet<string> configuredKeys)
+    {
+        if (string.IsNullOrWhiteSpace(menuFileName))
+        {
+            return false;
+        }
+
+        string[] parts = HttpUtility.UrlDecode(menuFileName).Split('?');
+        string menuPath = NormalizePath(parts[0]);
+
+        if (!string.Equals(menuPath, requestPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (parts.Length == 1)
+        {
+            return true;
+        }
+
+        Dictionary<string, string> menuQuery = ParseQueryPairs(parts[1]);
+        if (menuQuery.Count == 0)
+        {
+            return true;
+        }
+
+        bool hasConfiguredCondition = false;
+
+        foreach (KeyValuePair<string, string> pair in menuQuery)
+        {
+            if (!configuredKeys.Contains(pair.Key))
+            {
+                continue;
+            }
+
+            hasConfiguredCondition = true;
+
+            string requestValue;
+            if (!requestQuery.TryGetValue(pair.Key, out requestValue))
+            {
+                return false;
+            }
+
+            if (!string.Equals(requestValue, pair.Value, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        // Menu row has query-string conditions, but none are configured.
+        if (!hasConfiguredCondition)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static Dictionary<string, string> ParseQueryPairs(string queryPart)
+    {
+        Dictionary<string, string> result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(queryPart))
+        {
+            return result;
+        }
+
+        string[] pairs = queryPart.Split('&');
+
+        for (int i = 0; i < pairs.Length; i++)
+        {
+            string pair = pairs[i];
+            if (string.IsNullOrWhiteSpace(pair))
+            {
+                continue;
+            }
+
+            int eqIndex = pair.IndexOf('=');
+            string key;
+            string value;
+
+            if (eqIndex < 0)
+            {
+                key = pair.Trim();
+                value = string.Empty;
+            }
+            else
+            {
+                key = pair.Substring(0, eqIndex).Trim();
+                value = pair.Substring(eqIndex + 1).Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            result[HttpUtility.UrlDecode(key)] = HttpUtility.UrlDecode(value);
+        }
+
+        return result;
     }
 
     private static string NormalizePath(string path)
