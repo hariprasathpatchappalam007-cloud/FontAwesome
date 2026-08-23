@@ -2,60 +2,96 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
+using System.IO;
 using System.Web;
 
 public class PageAuthorizationService
 {
     private readonly string _connectionString;
+    private readonly bool _traceEnabled;
+    private readonly string _traceFilePath;
 
     public PageAuthorizationService(string connectionString)
     {
         _connectionString = connectionString;
+        _traceEnabled = true;
+
+        HttpContext context = HttpContext.Current;
+        if (context != null)
+        {
+            _traceFilePath = context.Server.MapPath("~/App_Data/AuthTrace.log");
+        }
     }
 
     public bool IsAuthorizedUser()
     {
         HttpContext context = HttpContext.Current;
+        string requestId = Guid.NewGuid().ToString("N");
+
+        LogTrace(requestId, "IsAuthorizedUser - Start");
 
         if (context == null)
         {
+            LogTrace(requestId, "Context is null. Authorization denied.");
             return false;
         }
 
         string userName = Convert.ToString(context.Session["USERID"]);
         if (string.IsNullOrWhiteSpace(userName))
         {
+            LogTrace(requestId, "Session USERID is empty. Authorization denied.");
             return false;
         }
+
+        LogTrace(requestId, "UserName=" + userName);
+        LogTrace(requestId, "Request.Path=" + Convert.ToString(context.Request.Path));
+        LogTrace(requestId, "Request.RawUrl=" + Convert.ToString(context.Request.RawUrl));
 
         string normalizedRequestPath = NormalizePath(context.Request.Path);
         if (string.IsNullOrEmpty(normalizedRequestPath))
         {
+            LogTrace(requestId, "Normalized request path is empty. Authorization denied.");
             return false;
         }
 
+        LogTrace(requestId, "NormalizedRequestPath=" + normalizedRequestPath);
+
         HashSet<string> configuredKeys = GetConfiguredQueryKeys();
         configuredKeys.Add("ROLE");
+        LogTrace(requestId, "ConfiguredKeysCount=" + configuredKeys.Count + "; Keys=" + JoinKeys(configuredKeys));
 
         Dictionary<string, string> requestQuery = ReadRequestQuery(context.Request.QueryString);
+        LogTrace(requestId, "RequestQueryCount=" + requestQuery.Count + "; Query=" + JoinPairs(requestQuery));
+
         DataSet ds = ExecuteAuthorizationProcedure(userName, normalizedRequestPath);
 
         if (ds == null || ds.Tables.Count == 0 || ds.Tables[0].Rows.Count == 0)
         {
+            LogTrace(requestId, "Procedure result has no rows. Authorization denied.");
             return false;
         }
 
         DataTable menuRows = ds.Tables[0];
+        LogTrace(requestId, "Procedure rows=" + menuRows.Rows.Count);
 
-        foreach (DataRow row in menuRows.Rows)
+        for (int i = 0; i < menuRows.Rows.Count; i++)
         {
+            DataRow row = menuRows.Rows[i];
             string menuFileName = Convert.ToString(row["MenuFileName"]);
-            if (IsMenuMatch(menuFileName, normalizedRequestPath, requestQuery, configuredKeys))
+            string reason;
+
+            bool matched = IsMenuMatch(menuFileName, normalizedRequestPath, requestQuery, configuredKeys, out reason);
+            LogTrace(requestId, "Row=" + i + "; MenuFileName=" + menuFileName + "; Matched=" + matched + "; Reason=" + reason);
+
+            if (matched)
             {
+                LogTrace(requestId, "Authorization granted.");
                 return true;
             }
         }
 
+        LogTrace(requestId, "No menu row matched. Authorization denied.");
         return false;
     }
 
@@ -134,14 +170,18 @@ public class PageAuthorizationService
         return data;
     }
 
-    private static bool IsMenuMatch(
+    private bool IsMenuMatch(
         string menuFileName,
         string requestPath,
         Dictionary<string, string> requestQuery,
-        HashSet<string> configuredKeys)
+        HashSet<string> configuredKeys,
+        out string reason)
     {
+        reason = string.Empty;
+
         if (string.IsNullOrWhiteSpace(menuFileName))
         {
+            reason = "MenuFileName is empty.";
             return false;
         }
 
@@ -150,17 +190,20 @@ public class PageAuthorizationService
 
         if (!string.Equals(menuPath, requestPath, StringComparison.OrdinalIgnoreCase))
         {
+            reason = "Path mismatch. MenuPath=" + menuPath + "; RequestPath=" + requestPath;
             return false;
         }
 
         if (parts.Length == 1)
         {
+            reason = "Path matched and no query condition in menu.";
             return true;
         }
 
         Dictionary<string, string> menuQuery = ParseQueryPairs(parts[1]);
         if (menuQuery.Count == 0)
         {
+            reason = "Path matched and menu query is empty after parse.";
             return true;
         }
 
@@ -178,11 +221,13 @@ public class PageAuthorizationService
             string requestValue;
             if (!requestQuery.TryGetValue(pair.Key, out requestValue))
             {
+                reason = "Configured key missing in request. Key=" + pair.Key;
                 return false;
             }
 
             if (!string.Equals(requestValue, pair.Value, StringComparison.OrdinalIgnoreCase))
             {
+                reason = "Configured key value mismatch. Key=" + pair.Key + "; RequestValue=" + requestValue + "; MenuValue=" + pair.Value;
                 return false;
             }
         }
@@ -190,9 +235,11 @@ public class PageAuthorizationService
         // Menu row has query-string conditions, but none are configured.
         if (!hasConfiguredCondition)
         {
+            reason = "Menu row has query conditions but none are part of configured keys.";
             return false;
         }
 
+        reason = "Path and configured query conditions matched.";
         return true;
     }
 
@@ -261,6 +308,73 @@ public class PageAuthorizationService
         }
 
         return normalized;
+    }
+
+    private void LogTrace(string requestId, string message)
+    {
+        if (!_traceEnabled)
+        {
+            return;
+        }
+
+        string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+            + " | " + requestId + " | " + message;
+
+        try
+        {
+            Trace.WriteLine("[Auth] " + line);
+        }
+        catch
+        {
+        }
+
+        if (string.IsNullOrWhiteSpace(_traceFilePath))
+        {
+            return;
+        }
+
+        try
+        {
+            string dir = Path.GetDirectoryName(_traceFilePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.AppendAllText(_traceFilePath, line + Environment.NewLine);
+        }
+        catch
+        {
+        }
+    }
+
+    private static string JoinKeys(HashSet<string> keys)
+    {
+        if (keys == null || keys.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        List<string> list = new List<string>(keys);
+        list.Sort(StringComparer.OrdinalIgnoreCase);
+        return string.Join(",", list.ToArray());
+    }
+
+    private static string JoinPairs(Dictionary<string, string> pairs)
+    {
+        if (pairs == null || pairs.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        List<string> list = new List<string>();
+        foreach (KeyValuePair<string, string> item in pairs)
+        {
+            list.Add(item.Key + "=" + item.Value);
+        }
+
+        list.Sort(StringComparer.OrdinalIgnoreCase);
+        return string.Join("&", list.ToArray());
     }
 }
 
