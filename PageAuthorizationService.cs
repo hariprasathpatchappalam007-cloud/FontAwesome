@@ -402,6 +402,14 @@ public static class AuthorizationCaller
 {
     public static void ValidateCurrentRequest(raqValidation objRaqValidation)
     {
+        string rawUrl = Convert.ToString(HttpContext.Current.Request.RawUrl);
+        if (!string.IsNullOrWhiteSpace(rawUrl) && rawUrl.EndsWith("/", StringComparison.Ordinal))
+        {
+            HttpContext.Current.Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), false);
+            HttpContext.Current.ApplicationInstance.CompleteRequest();
+            return;
+        }
+
         string con = objRaqValidation.getAppSettings("SqlConnectionString");
         PageAuthorizationService authService = new PageAuthorizationService(con);
 
