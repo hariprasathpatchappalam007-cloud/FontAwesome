@@ -37,6 +37,13 @@ public class PageAuthorizationService
             return false;
         }
 
+        string rawUrl = Convert.ToString(context.Request.RawUrl);
+        if (!string.IsNullOrWhiteSpace(rawUrl) && rawUrl.EndsWith("/", StringComparison.Ordinal))
+        {
+            LogTrace(requestId, "RawUrl ends with '/'. Authorization denied for trailing slash URL.");
+            return false;
+        }
+
         string userName = Convert.ToString(context.Session["USERID"]);
         if (string.IsNullOrWhiteSpace(userName))
         {
@@ -402,14 +409,6 @@ public static class AuthorizationCaller
 {
     public static void ValidateCurrentRequest(raqValidation objRaqValidation)
     {
-        string rawUrl = Convert.ToString(HttpContext.Current.Request.RawUrl);
-        if (!string.IsNullOrWhiteSpace(rawUrl) && rawUrl.EndsWith("/", StringComparison.Ordinal))
-        {
-            HttpContext.Current.Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), false);
-            HttpContext.Current.ApplicationInstance.CompleteRequest();
-            return;
-        }
-
         string con = objRaqValidation.getAppSettings("SqlConnectionString");
         PageAuthorizationService authService = new PageAuthorizationService(con);
 
