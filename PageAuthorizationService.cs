@@ -409,13 +409,51 @@ public static class AuthorizationCaller
 {
     public static void ValidateCurrentRequest(raqValidation objRaqValidation)
     {
+        string requestId = Guid.NewGuid().ToString("N");
+        LogCallerTrace(requestId, "ValidateCurrentRequest - Start");
+
         string con = objRaqValidation.getAppSettings("SqlConnectionString");
         PageAuthorizationService authService = new PageAuthorizationService(con);
 
-        if (!authService.IsAuthorizedUser())
+        bool isAuthorized = authService.IsAuthorizedUser();
+        LogCallerTrace(requestId, "IsAuthorizedUser result=" + isAuthorized);
+
+        if (!isAuthorized)
         {
+            LogCallerTrace(requestId, "Not authorized. Redirecting to login.aspx now.");
+
             // endResponse: true aborts the thread here so no legacy page code below runs.
             HttpContext.Current.Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), true);
+
+            // If this line ever logs, a try/catch in the calling page swallowed the ThreadAbortException.
+            LogCallerTrace(requestId, "WARNING: code after Redirect(true) still executed.");
+        }
+    }
+
+    private static void LogCallerTrace(string requestId, string message)
+    {
+        try
+        {
+            string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " | " + requestId + " | " + message;
+            Trace.WriteLine("[Auth] " + line);
+
+            HttpContext context = HttpContext.Current;
+            if (context == null)
+            {
+                return;
+            }
+
+            string traceFilePath = context.Server.MapPath("~/App_Data/AuthTrace.log");
+            string dir = Path.GetDirectoryName(traceFilePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.AppendAllText(traceFilePath, line + Environment.NewLine);
+        }
+        catch
+        {
         }
     }
 }
