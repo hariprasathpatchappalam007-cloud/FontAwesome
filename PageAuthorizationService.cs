@@ -414,8 +414,8 @@ public static class AuthorizationCaller
 
         if (!authService.IsAuthorizedUser())
         {
-            HttpContext.Current.Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), false);
-            HttpContext.Current.ApplicationInstance.CompleteRequest();
+            // endResponse: true aborts the thread here so no legacy page code below runs.
+            HttpContext.Current.Response.Redirect(System.Web.VirtualPathUtility.ToAbsolute("~/login.aspx"), true);
         }
     }
 }
