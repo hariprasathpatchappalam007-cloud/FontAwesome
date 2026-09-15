@@ -1,13 +1,15 @@
-if (!IsPostBack)
-    {
-        string referrer = Request.UrlReferrer != null
-            ? Request.UrlReferrer.AbsolutePath.ToLower()
-            : string.Empty;
+Dear [Name],
 
-        if (string.IsNullOrEmpty(referrer) || !referrer.EndsWith("/default.aspx"))
-        {
-            Response.Redirect("../default.aspx", false);
-            Context.ApplicationInstance.CompleteRequest();
-            return;
-        }
-    }
+The DDA registration process is as follows:
+
+1. **DMS File Upload** – The document is first uploaded through the DMS service. The transaction can be traced in `SOA_CALLLOG_CORE` using the method name **"DDADocumentSaveInDMS"**.
+2. **DMS Response** – The response should contain the **Document Ref No.** along with a success message.
+3. **DDS Registration** – Once the DMS upload is successful, DDS registration is initiated using the **Tray ID** and **Application ID**.
+4. **DDA Registration** – SOA scans the document and sends it to GBO for DDA registration.
+
+For the case you mentioned, it appears that the process failed at **Step 1 – DMS file upload**.
+
+Could you please check the `SOA_CALLLOG_CORE` details for the **"DDADocumentSaveInDMS"** method and validate the response accordingly?
+
+Thanks,
+Hariprasath
