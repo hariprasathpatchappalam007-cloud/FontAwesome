@@ -1,0 +1,13 @@
+if (!IsPostBack)
+    {
+        string referrer = Request.UrlReferrer != null
+            ? Request.UrlReferrer.AbsolutePath.ToLower()
+            : string.Empty;
+
+        if (string.IsNullOrEmpty(referrer) || !referrer.EndsWith("/default.aspx"))
+        {
+            Response.Redirect("../default.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
+            return;
+        }
+    }
