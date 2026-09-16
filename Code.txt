@@ -1,12 +1,13 @@
-Dear Ahmed,
+Dear Aswathi,
 
-It was nice discussing with you.
+* Event Hub team has fixed the recent production issue with the HFLMS rejection notification.
+* Once they share the environment details, please test the fix and confirm the result.
+* Please certify the fix so we can proceed further.
 
-As discussed, for the case you reported, **EFR is not applicable to the primary customer (Gaddah)**, while **EFR is applicable to the co-applicant (Murad)**.
+Dear Vidya,
 
-The system has already sent the EFR link to Murad; however, he has not yet accepted or processed the link. Kindly contact him and request him to process the same.
-
-**Note:** The system is working as expected, and no system issue has been identified.
+* Please share the HFLMS database details connected to Event Hub.
+* Based on this, I will share the HFLMS URL with the business team for testing.
 
 Regards,
 [Your Name]
