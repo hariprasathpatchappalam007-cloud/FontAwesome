@@ -1,48 +1,12 @@
-public static void ValidatePageAccess()
-{
-    string referrer = HttpContext.Current.Request.UrlReferrer != null
-        ? HttpContext.Current.Request.UrlReferrer.AbsolutePath
-        : string.Empty;
+Dear Ahmed,
 
-    if (string.IsNullOrEmpty(referrer) ||
-        !referrer.EndsWith("/default.aspx", StringComparison.OrdinalIgnoreCase))
-    {
-        HttpContext.Current.Response.Redirect("../default.aspx", false);
-        HttpContext.Current.Context.ApplicationInstance.CompleteRequest();
-    }
-}
+It was nice discussing with you.
 
-protected void Page_Load(object sender, EventArgs e)
-{
-    Common.ValidatePageAccess();
+As discussed, for the case you reported, **EFR is not applicable to the primary customer (Gaddah)**, while **EFR is applicable to the co-applicant (Murad)**.
 
-    // Existing Page_Load code
-}
+The system has already sent the EFR link to Murad; however, he has not yet accepted or processed the link. Kindly contact him and request him to process the same.
 
+**Note:** The system is working as expected, and no system issue has been identified.
 
-
-public static bool ValidatePageAccess()
-{
-    string referrer = HttpContext.Current.Request.UrlReferrer != null
-        ? HttpContext.Current.Request.UrlReferrer.AbsolutePath
-        : string.Empty;
-
-    if (string.IsNullOrEmpty(referrer) ||
-        !referrer.EndsWith("/default.aspx", StringComparison.OrdinalIgnoreCase))
-    {
-        HttpContext.Current.Response.Redirect("../default.aspx", false);
-        HttpContext.Current.ApplicationInstance.CompleteRequest();
-
-        return false;
-    }
-
-    return true;
-}
-
-protected void Page_Load(object sender, EventArgs e)
-{
-    if (!Common.ValidatePageAccess())
-        return;
-
-    // Existing code
-}
+Regards,
+[Your Name]
