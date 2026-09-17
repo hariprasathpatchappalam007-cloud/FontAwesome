@@ -1,0 +1,79 @@
+using System;
+using System.IO;
+using System.Text;
+
+namespace AspxFileLister
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.Write("Enter the root path: ");
+            string rootPath = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(rootPath) || !Directory.Exists(rootPath))
+            {
+                Console.WriteLine("Invalid path.");
+                Console.ReadKey();
+                return;
+            }
+
+            string csvPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                "ASPX_Pages.csv"
+            );
+
+            StringBuilder csv = new StringBuilder();
+
+            // CSV Header
+            csv.AppendLine("File Name,Full Path,Directory,Last Modified");
+
+            try
+            {
+                string[] files = Directory.GetFiles(
+                    rootPath,
+                    "*.aspx",
+                    SearchOption.AllDirectories
+                );
+
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        FileInfo fileInfo = new FileInfo(file);
+
+                        csv.AppendLine(
+                            "\"" + fileInfo.Name.Replace("\"", "\"\"") + "\"," +
+                            "\"" + fileInfo.FullName.Replace("\"", "\"\"") + "\"," +
+                            "\"" + fileInfo.DirectoryName.Replace("\"", "\"\"") + "\"," +
+                            "\"" + fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss") + "\""
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(
+                            "Unable to read file: " + file +
+                            " - " + ex.Message
+                        );
+                    }
+                }
+
+                File.WriteAllText(csvPath, csv.ToString(), Encoding.UTF8);
+
+                Console.WriteLine();
+                Console.WriteLine("Scan completed.");
+                Console.WriteLine("ASPX pages found: " + files.Length);
+                Console.WriteLine("CSV exported to:");
+                Console.WriteLine(csvPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+        }
+    }
+}
