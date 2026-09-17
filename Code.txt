@@ -1,236 +1,61 @@
-using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
+string tempFolder = Server.MapPath("~/TEMP/");
 
-public static class UrlEncryption
+// Delete previously generated PDF for this user
+if (Session["GeneratedPDF"] != null)
 {
-    private static readonly string EncryptionKey =
-        "YOUR-32-CHARACTER-SECRET-KEY-HERE";
+    string oldFileName = Session["GeneratedPDF"].ToString();
+    string oldFilePath = Path.Combine(tempFolder, oldFileName);
 
-    public static string Encrypt(string plainText)
+    if (File.Exists(oldFilePath))
     {
-        byte[] key = Encoding.UTF8.GetBytes(EncryptionKey);
-        byte[] iv = new byte[16];
-
-        using (Aes aes = Aes.Create())
-        {
-            aes.Key = key;
-            aes.IV = iv;
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                using (CryptoStream cs = new CryptoStream(
-                    ms,
-                    aes.CreateEncryptor(),
-                    CryptoStreamMode.Write))
-                {
-                    byte[] data = Encoding.UTF8.GetBytes(plainText);
-                    cs.Write(data, 0, data.Length);
-                    cs.FlushFinalBlock();
-                }
-
-                return Convert.ToBase64String(ms.ToArray())
-                    .Replace("+", "-")
-                    .Replace("/", "_")
-                    .Replace("=", "");
-            }
-        }
-    }
-
-    public static string Decrypt(string cipherText)
-    {
-        cipherText = cipherText
-            .Replace("-", "+")
-            .Replace("_", "/");
-
-        switch (cipherText.Length % 4)
-        {
-            case 2:
-                cipherText += "==";
-                break;
-            case 3:
-                cipherText += "=";
-                break;
-        }
-
-        byte[] key = Encoding.UTF8.GetBytes(EncryptionKey);
-        byte[] iv = new byte[16];
-        byte[] cipherBytes = Convert.FromBase64String(cipherText);
-
-        using (Aes aes = Aes.Create())
-        {
-            aes.Key = key;
-            aes.IV = iv;
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                using (CryptoStream cs = new CryptoStream(
-                    ms,
-                    aes.CreateDecryptor(),
-                    CryptoStreamMode.Write))
-                {
-                    cs.Write(cipherBytes, 0, cipherBytes.Length);
-                    cs.FlushFinalBlock();
-                }
-
-                return Encoding.UTF8.GetString(ms.ToArray());
-            }
-        }
+        File.Delete(oldFilePath);
     }
 }
 
-string refNo = "LD-00146058";
+// Generate unpredictable filename
+string newFileName = Guid.NewGuid().ToString("N") + ".pdf";
+string newFilePath = Path.Combine(tempFolder, newFileName);
 
-string data = "REFNO=" + refNo;
+// Create PDF
+PdfWriter.GetInstance(
+    _Document,
+    new FileStream(newFilePath, FileMode.Create)
+);
 
-string token = UrlEncryption.Encrypt(data);
+// Store the new filename in Session
+Session["GeneratedPDF"] = newFileName;
 
-string url =
-    "../Workflow/Lead_Application_Movement_History.aspx?token="
-    + Server.UrlEncode(token);
+// URL for the newly generated PDF
+string pdfUrl = RQ.getAppSettings("URL") + "/TEMP/" + newFileName;
 
+__string += "viewASPFile(\"" + pdfUrl + "\");";
+-------------------
 
+string tempFolder = Server.MapPath("~/TEMP/");
+string userId = Session["USERID"].ToString();
 
-function view_LeadMovement(token) {
-    if (token != "") {
-        var FileName =
-            "../Workflow/Lead_Application_Movement_History.aspx?token="
-            + encodeURIComponent(token);
+// Delete previous PDF files for this user
+string[] oldFiles = Directory.GetFiles(
+    tempFolder,
+    userId + "_*.pdf"
+);
 
-        viewASPFile(FileName);
-    }
-    else {
-        alert("Select Lead from Application details List");
-    }
-}
-
-
-
-protected void Page_Load(object sender, EventArgs e)
+foreach (string file in oldFiles)
 {
-    if (!IsPostBack)
-    {
-        string token = Request.QueryString["token"];
-
-        if (string.IsNullOrEmpty(token))
-        {
-            Response.StatusCode = 400;
-            Response.End();
-            return;
-        }
-
-        try
-        {
-            string decryptedData =
-                UrlEncryption.Decrypt(token);
-
-            // Example:
-            // REFNO=LD-00146058
-
-            string[] parts = decryptedData.Split('=');
-
-            string refNo = parts[1];
-
-            // Continue processing using refNo
-        }
-        catch
-        {
-            Response.StatusCode = 400;
-            Response.End();
-        }
-    }
+    File.Delete(file);
 }
 
+// Generate unpredictable filename
+string fileName = userId + "_" + Guid.NewGuid().ToString("N") + ".pdf";
+string filePath = Path.Combine(tempFolder, fileName);
 
+// Create PDF
+PdfWriter.GetInstance(
+    _Document,
+    new FileStream(filePath, FileMode.Create)
+);
 
-NameValueCollection parameters =
-    HttpUtility.ParseQueryString(decryptedData);
+// URL of newly generated PDF
+string pdfUrl = RQ.getAppSettings("URL") + "/TEMP/" + fileName;
 
-string refNo = parameters["REFNO"];
-string stage = parameters["STAGE"];
-
-
-
-
-
-----------------------------
-
-
-
-protected void Page_Load(object sender, EventArgs e)
-{
-    if (!IsPostBack)
-    {
-        string token = Request.QueryString["token"];
-
-        if (string.IsNullOrEmpty(token))
-        {
-            Response.StatusCode = 400;
-            Response.End();
-            return;
-        }
-
-        try
-        {
-            // Decrypt token
-            string decryptedData = UrlEncryption.Decrypt(token);
-
-            NameValueCollection parameters =
-                HttpUtility.ParseQueryString(decryptedData);
-
-            string tokenRefNo = parameters["REFNO"];
-            string tokenUserId = parameters["USERID"];
-            string stage = parameters["STAGE"];
-
-            // Get current logged-in user
-            string sessionUserId = Convert.ToString(Session["UserID"]);
-
-            // Validate UserID
-            if (string.IsNullOrEmpty(sessionUserId) ||
-                string.IsNullOrEmpty(tokenUserId) ||
-                !string.Equals(
-                    tokenUserId,
-                    sessionUserId,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                Response.StatusCode = 403;
-                Response.End();
-                return;
-            }
-
-            // Token is valid and belongs to current session user
-            LoadLeadMovementHistory(tokenRefNo);
-        }
-        catch
-        {
-            Response.StatusCode = 400;
-            Response.End();
-        }
-    }
-}
-
--------------------------
-
-
-string sessionUserId = Convert.ToString(Session["UserID"]);
-
-if (string.IsNullOrEmpty(sessionUserId))
-{
-    // Session expired
-    Response.StatusCode = 401;
-    Response.End();
-    return;
-}
-
-if (!string.Equals(tokenUserId, sessionUserId,
-    StringComparison.OrdinalIgnoreCase))
-{
-    // Token belongs to another user
-    Response.StatusCode = 403;
-    Response.End();
-    return;
-}
-
-
-
+__string += "viewASPFile(\"" + pdfUrl + "\");";
