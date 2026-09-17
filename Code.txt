@@ -1,13 +1,236 @@
-Dear Aswathi,
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
-* Event Hub team has fixed the recent production issue with the HFLMS rejection notification.
-* Once they share the environment details, please test the fix and confirm the result.
-* Please certify the fix so we can proceed further.
+public static class UrlEncryption
+{
+    private static readonly string EncryptionKey =
+        "YOUR-32-CHARACTER-SECRET-KEY-HERE";
 
-Dear Vidya,
+    public static string Encrypt(string plainText)
+    {
+        byte[] key = Encoding.UTF8.GetBytes(EncryptionKey);
+        byte[] iv = new byte[16];
 
-* Please share the HFLMS database details connected to Event Hub.
-* Based on this, I will share the HFLMS URL with the business team for testing.
+        using (Aes aes = Aes.Create())
+        {
+            aes.Key = key;
+            aes.IV = iv;
 
-Regards,
-[Your Name]
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (CryptoStream cs = new CryptoStream(
+                    ms,
+                    aes.CreateEncryptor(),
+                    CryptoStreamMode.Write))
+                {
+                    byte[] data = Encoding.UTF8.GetBytes(plainText);
+                    cs.Write(data, 0, data.Length);
+                    cs.FlushFinalBlock();
+                }
+
+                return Convert.ToBase64String(ms.ToArray())
+                    .Replace("+", "-")
+                    .Replace("/", "_")
+                    .Replace("=", "");
+            }
+        }
+    }
+
+    public static string Decrypt(string cipherText)
+    {
+        cipherText = cipherText
+            .Replace("-", "+")
+            .Replace("_", "/");
+
+        switch (cipherText.Length % 4)
+        {
+            case 2:
+                cipherText += "==";
+                break;
+            case 3:
+                cipherText += "=";
+                break;
+        }
+
+        byte[] key = Encoding.UTF8.GetBytes(EncryptionKey);
+        byte[] iv = new byte[16];
+        byte[] cipherBytes = Convert.FromBase64String(cipherText);
+
+        using (Aes aes = Aes.Create())
+        {
+            aes.Key = key;
+            aes.IV = iv;
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (CryptoStream cs = new CryptoStream(
+                    ms,
+                    aes.CreateDecryptor(),
+                    CryptoStreamMode.Write))
+                {
+                    cs.Write(cipherBytes, 0, cipherBytes.Length);
+                    cs.FlushFinalBlock();
+                }
+
+                return Encoding.UTF8.GetString(ms.ToArray());
+            }
+        }
+    }
+}
+
+string refNo = "LD-00146058";
+
+string data = "REFNO=" + refNo;
+
+string token = UrlEncryption.Encrypt(data);
+
+string url =
+    "../Workflow/Lead_Application_Movement_History.aspx?token="
+    + Server.UrlEncode(token);
+
+
+
+function view_LeadMovement(token) {
+    if (token != "") {
+        var FileName =
+            "../Workflow/Lead_Application_Movement_History.aspx?token="
+            + encodeURIComponent(token);
+
+        viewASPFile(FileName);
+    }
+    else {
+        alert("Select Lead from Application details List");
+    }
+}
+
+
+
+protected void Page_Load(object sender, EventArgs e)
+{
+    if (!IsPostBack)
+    {
+        string token = Request.QueryString["token"];
+
+        if (string.IsNullOrEmpty(token))
+        {
+            Response.StatusCode = 400;
+            Response.End();
+            return;
+        }
+
+        try
+        {
+            string decryptedData =
+                UrlEncryption.Decrypt(token);
+
+            // Example:
+            // REFNO=LD-00146058
+
+            string[] parts = decryptedData.Split('=');
+
+            string refNo = parts[1];
+
+            // Continue processing using refNo
+        }
+        catch
+        {
+            Response.StatusCode = 400;
+            Response.End();
+        }
+    }
+}
+
+
+
+NameValueCollection parameters =
+    HttpUtility.ParseQueryString(decryptedData);
+
+string refNo = parameters["REFNO"];
+string stage = parameters["STAGE"];
+
+
+
+
+
+----------------------------
+
+
+
+protected void Page_Load(object sender, EventArgs e)
+{
+    if (!IsPostBack)
+    {
+        string token = Request.QueryString["token"];
+
+        if (string.IsNullOrEmpty(token))
+        {
+            Response.StatusCode = 400;
+            Response.End();
+            return;
+        }
+
+        try
+        {
+            // Decrypt token
+            string decryptedData = UrlEncryption.Decrypt(token);
+
+            NameValueCollection parameters =
+                HttpUtility.ParseQueryString(decryptedData);
+
+            string tokenRefNo = parameters["REFNO"];
+            string tokenUserId = parameters["USERID"];
+            string stage = parameters["STAGE"];
+
+            // Get current logged-in user
+            string sessionUserId = Convert.ToString(Session["UserID"]);
+
+            // Validate UserID
+            if (string.IsNullOrEmpty(sessionUserId) ||
+                string.IsNullOrEmpty(tokenUserId) ||
+                !string.Equals(
+                    tokenUserId,
+                    sessionUserId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                Response.StatusCode = 403;
+                Response.End();
+                return;
+            }
+
+            // Token is valid and belongs to current session user
+            LoadLeadMovementHistory(tokenRefNo);
+        }
+        catch
+        {
+            Response.StatusCode = 400;
+            Response.End();
+        }
+    }
+}
+
+-------------------------
+
+
+string sessionUserId = Convert.ToString(Session["UserID"]);
+
+if (string.IsNullOrEmpty(sessionUserId))
+{
+    // Session expired
+    Response.StatusCode = 401;
+    Response.End();
+    return;
+}
+
+if (!string.Equals(tokenUserId, sessionUserId,
+    StringComparison.OrdinalIgnoreCase))
+{
+    // Token belongs to another user
+    Response.StatusCode = 403;
+    Response.End();
+    return;
+}
+
+
+
