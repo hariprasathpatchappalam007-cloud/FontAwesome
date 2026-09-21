@@ -1,61 +1,11 @@
-string tempFolder = Server.MapPath("~/TEMP/");
+Dear Faisal,
 
-// Delete previously generated PDF for this user
-if (Session["GeneratedPDF"] != null)
-{
-    string oldFileName = Session["GeneratedPDF"].ToString();
-    string oldFilePath = Path.Combine(tempFolder, oldFileName);
+The 21-day logic is implemented at the SOA layer, and this needs to be confirmed by the SOA team.
 
-    if (File.Exists(oldFilePath))
-    {
-        File.Delete(oldFilePath);
-    }
-}
+If any relaxation to this logic is required, the approval/decision would need to come from the relevant authority, with Anu marked in CC.
 
-// Generate unpredictable filename
-string newFileName = Guid.NewGuid().ToString("N") + ".pdf";
-string newFilePath = Path.Combine(tempFolder, newFileName);
+Dear Anu,
 
-// Create PDF
-PdfWriter.GetInstance(
-    _Document,
-    new FileStream(newFilePath, FileMode.Create)
-);
+Could you please check and confirm whether the 21-day AECB service no-hit logic is enabled in production?
 
-// Store the new filename in Session
-Session["GeneratedPDF"] = newFileName;
-
-// URL for the newly generated PDF
-string pdfUrl = RQ.getAppSettings("URL") + "/TEMP/" + newFileName;
-
-__string += "viewASPFile(\"" + pdfUrl + "\");";
--------------------
-
-string tempFolder = Server.MapPath("~/TEMP/");
-string userId = Session["USERID"].ToString();
-
-// Delete previous PDF files for this user
-string[] oldFiles = Directory.GetFiles(
-    tempFolder,
-    userId + "_*.pdf"
-);
-
-foreach (string file in oldFiles)
-{
-    File.Delete(file);
-}
-
-// Generate unpredictable filename
-string fileName = userId + "_" + Guid.NewGuid().ToString("N") + ".pdf";
-string filePath = Path.Combine(tempFolder, fileName);
-
-// Create PDF
-PdfWriter.GetInstance(
-    _Document,
-    new FileStream(filePath, FileMode.Create)
-);
-
-// URL of newly generated PDF
-string pdfUrl = RQ.getAppSettings("URL") + "/TEMP/" + fileName;
-
-__string += "viewASPFile(\"" + pdfUrl + "\");";
+Also, please confirm whether changing the 21-day period to 0 days is technically feasible, subject to management approval, and advise Faisal accordingly.
