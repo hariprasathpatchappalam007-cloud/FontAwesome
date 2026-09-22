@@ -1,10 +1,17 @@
-Dear Nosheen,
+/*
+    Sample executions.
+    Arabic string literals must use the N prefix, otherwise SQL Server can convert
+    the text through a non-Unicode code page before it reaches the NVARCHAR parameters.
 
-Since the Coreflex era, the existing behavior has been to pass the value as hardcoded **“N”**, as mentioned below.
+    Valid non-individual example:
+    EXEC dbo.usp_ValidateArabicName
+        @FirstName = N'هاري',
+        @LastName = N'براساث';
 
-For this change, you may need to coordinate with **Product (Aswathi, in CC)** and raise the required change request.
-
-Please let me know if you need any additional information from my side.
-
-Regards,
-Hariprasath
+    Valid individual example:
+    EXEC dbo.usp_ValidateArabicName
+        @FirstName = N'هاري',
+        @LastName = N'براساث',
+        @FullName = N'هاري براساث',
+        @ResidencyType = N'Resident';
+*/
