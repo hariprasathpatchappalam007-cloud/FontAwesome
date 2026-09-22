@@ -1,7 +1,7 @@
 /*
     Arabic name validation setup for SQL Server.
 
-    This script stores Arabic restricted text in a configuration table and exposes
+    This script stores Arabic restricted text in the existing FRM_GNARR table and exposes
     dbo.usp_ValidateArabicName to validate first, middle, last, and backend full name values.
 */
 
@@ -10,64 +10,75 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-IF OBJECT_ID(N'dbo.ArabicNameRestrictedWordConfig', N'U') IS NULL
+IF OBJECT_ID(N'dbo.FRM_GNARR', N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.ArabicNameRestrictedWordConfig
-    (
-        RestrictedWordId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ArabicNameRestrictedWordConfig PRIMARY KEY,
-        ArabicWord NVARCHAR(100) NOT NULL,
-        EnglishMeaning NVARCHAR(200) NULL,
-        IsActive BIT NOT NULL CONSTRAINT DF_ArabicNameRestrictedWordConfig_IsActive DEFAULT (1),
-        CreatedOn DATETIME2(0) NOT NULL CONSTRAINT DF_ArabicNameRestrictedWordConfig_CreatedOn DEFAULT (SYSUTCDATETIME()),
-        CONSTRAINT UQ_ArabicNameRestrictedWordConfig_ArabicWord UNIQUE (ArabicWord)
-    );
+    RAISERROR('Required table dbo.FRM_GNARR does not exist.', 16, 1);
+    RETURN;
 END;
 GO
 
-MERGE dbo.ArabicNameRestrictedWordConfig AS Target
-USING
+INSERT INTO dbo.FRM_GNARR
+(
+    Code,
+    Value,
+    DisplayValue,
+    Status,
+    createdby_User,
+    createdon_date,
+    PassValue,
+    DISPLAYVALUE_AR
+)
+SELECT
+    Source.Code,
+    Source.ArabicWord,
+    Source.EnglishMeaning,
+    N'Active',
+    N'SYSTEM',
+    GETDATE(),
+    N'ArabicNameRestrictedWord',
+    Source.ArabicWord
+FROM
 (
     VALUES
-        (N'زوجة', N'Wife / Spouse (female)'),
-        (N'و', N'And'),
-        (N'مزرعة', N'Farm'),
-        (N'مزرعه', N'Farm'),
-        (N'ام', N'Mother / Umm'),
-        (N'أم', N'Mother / Umm'),
-        (N'والدة', N'Mother (formal)'),
-        (N'الوصي', N'Guardian / Legal Custodian'),
-        (N'وصي', N'Guardian / Legal Custodian'),
-        (N'إبن', N'Son of'),
-        (N'ابن', N'Son of'),
-        (N'ابنه', N'Daughter of'),
-        (N'إبنه', N'Daughter of'),
-        (N'ابنة', N'Daughter of'),
-        (N'إبنة', N'Daughter of'),
-        (N'مبنى', N'Building'),
-        (N'بناء', N'Construction / Building'),
-        (N'ارملة', N'Widow'),
-        (N'أرملة', N'Widow'),
-        (N'ارمله', N'Widow'),
-        (N'أرمله', N'Widow'),
-        (N'قاصر', N'Minor (under legal age)'),
-        (N'مشروع', N'Project'),
-        (N'تنازل', N'Waiver / Assignment / Transfer of Rights'),
-        (N'بالتنازل', N'Waiver / Assignment / Transfer of Rights'),
-        (N'التنازل', N'Waiver / Assignment / Transfer of Rights'),
-        (N'محكمة', N'Court'),
-        (N'محكمه', N'Court'),
-        (N'وريث', N'Heir'),
-        (N'ورثة', N'Heirs / Beneficiaries'),
-        (N'ورثه', N'Heirs / Beneficiaries')
-) AS Source (ArabicWord, EnglishMeaning)
-ON Target.ArabicWord = Source.ArabicWord
-WHEN MATCHED THEN
-    UPDATE SET
-        EnglishMeaning = Source.EnglishMeaning,
-        IsActive = 1
-WHEN NOT MATCHED BY TARGET THEN
-    INSERT (ArabicWord, EnglishMeaning)
-    VALUES (Source.ArabicWord, Source.EnglishMeaning);
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'زوجة', N'Wife / Spouse (female)'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'و', N'And'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'مزرعة', N'Farm'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'مزرعه', N'Farm'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ام', N'Mother / Umm'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'أم', N'Mother / Umm'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'والدة', N'Mother (formal)'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'الوصي', N'Guardian / Legal Custodian'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'وصي', N'Guardian / Legal Custodian'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'إبن', N'Son of'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ابن', N'Son of'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ابنه', N'Daughter of'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'إبنه', N'Daughter of'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ابنة', N'Daughter of'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'إبنة', N'Daughter of'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'مبنى', N'Building'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'بناء', N'Construction / Building'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ارملة', N'Widow'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'أرملة', N'Widow'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ارمله', N'Widow'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'أرمله', N'Widow'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'قاصر', N'Minor (under legal age)'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'مشروع', N'Project'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'تنازل', N'Waiver / Assignment / Transfer of Rights'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'بالتنازل', N'Waiver / Assignment / Transfer of Rights'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'التنازل', N'Waiver / Assignment / Transfer of Rights'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'محكمة', N'Court'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'محكمه', N'Court'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'وريث', N'Heir'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ورثة', N'Heirs / Beneficiaries'),
+        (N'ARABIC_NAME_RESTRICTED_WORD', N'ورثه', N'Heirs / Beneficiaries')
+) AS Source (Code, ArabicWord, EnglishMeaning)
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.FRM_GNARR AS ExistingConfig
+    WHERE ExistingConfig.Code = Source.Code
+      AND ExistingConfig.Value = Source.ArabicWord
+);
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_ValidateArabicName
@@ -206,11 +217,10 @@ BEGIN
         ELSE IF @IsIndividual = 1 AND LEN(@NormalizedValue) > 0 AND EXISTS
         (
             SELECT 1
-            FROM STRING_SPLIT(@NormalizedValue, N' ') AS Tokens
-            INNER JOIN dbo.ArabicNameRestrictedWordConfig AS RestrictedWords
-                ON RestrictedWords.ArabicWord = Tokens.value
-               AND RestrictedWords.IsActive = 1
-            WHERE Tokens.value <> N''
+            FROM dbo.FRM_GNARR AS RestrictedWords
+            WHERE RestrictedWords.Code = N'ARABIC_NAME_RESTRICTED_WORD'
+              AND ISNULL(RestrictedWords.Status, N'Active') = N'Active'
+              AND CHARINDEX(N' ' + RestrictedWords.Value + N' ', N' ' + @NormalizedValue + N' ') > 0
         )
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
