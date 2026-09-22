@@ -1,11 +1,10 @@
-Dear Faisal,
+Dear Nosheen,
 
-The 21-day logic is implemented at the SOA layer, and this needs to be confirmed by the SOA team.
+Since the Coreflex era, the existing behavior has been to pass the value as hardcoded **“N”**, as mentioned below.
 
-If any relaxation to this logic is required, the approval/decision would need to come from the relevant authority, with Anu marked in CC.
+For this change, you may need to coordinate with **Product (Aswathi, in CC)** and raise the required change request.
 
-Dear Anu,
+Please let me know if you need any additional information from my side.
 
-Could you please check and confirm whether the 21-day AECB service no-hit logic is enabled in production?
-
-Also, please confirm whether changing the 21-day period to 0 days is technically feasible, subject to management approval, and advise Faisal accordingly.
+Regards,
+Hariprasath
