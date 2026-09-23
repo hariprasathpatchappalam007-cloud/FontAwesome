@@ -4,6 +4,7 @@
     Assumptions:
     - Database engine is Microsoft SQL Server.
     - FRM_config.Key_Value currently stores Base64-encoded values when IsPassword = 1.
+    - Password values will be migrated in-place in Key_Value as ENC:<base64 encrypted bytes>.
     - Non-password values must remain plain text in Key_Value.
     - Password values should be returned decrypted only through dbo.usp_FRM_config_Get.
     - Password values should be saved encrypted only through dbo.usp_FRM_config_Save.
@@ -42,11 +43,6 @@ BEGIN TRY
             ENCRYPTION BY CERTIFICATE FRM_Config_DataProtection_Cert;
     END;
 
-    IF COL_LENGTH('dbo.FRM_config', 'Key_Value_Encrypted') IS NULL
-    BEGIN
-        ALTER TABLE dbo.FRM_config ADD Key_Value_Encrypted varbinary(max) NULL;
-    END;
-
     COMMIT TRANSACTION;
 END TRY
 BEGIN CATCH
@@ -76,6 +72,40 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER FUNCTION dbo.ufn_FRM_Base64EncodeFromVarbinary
+(
+    @Bytes varbinary(max)
+)
+RETURNS nvarchar(max)
+AS
+BEGIN
+    IF @Bytes IS NULL
+        RETURN NULL;
+
+    RETURN CAST(N'' AS xml).value(
+        'xs:base64Binary(sql:variable("@Bytes"))',
+        'nvarchar(max)'
+    );
+END;
+GO
+
+CREATE OR ALTER FUNCTION dbo.ufn_FRM_Base64DecodeToVarbinary
+(
+    @EncodedValue nvarchar(max)
+)
+RETURNS varbinary(max)
+AS
+BEGIN
+    IF @EncodedValue IS NULL OR LTRIM(RTRIM(@EncodedValue)) = N''
+        RETURN NULL;
+
+    RETURN CAST(N'' AS xml).value(
+        'xs:base64Binary(sql:variable("@EncodedValue"))',
+        'varbinary(max)'
+    );
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_FRM_config_MigrateEncodedPasswords
 AS
 BEGIN
@@ -88,17 +118,19 @@ BEGIN
         DECRYPTION BY CERTIFICATE FRM_Config_DataProtection_Cert;
 
     UPDATE dbo.FRM_config
-       SET Key_Value_Encrypted = EncryptByKey(
-               Key_GUID(N'FRM_Config_AES256_Key'),
-               CONVERT(varbinary(max), dbo.ufn_FRM_Base64DecodeToNvarchar(Key_Value)),
-               1,
-               Key_Name
+       SET Key_Value = N'ENC:' + dbo.ufn_FRM_Base64EncodeFromVarbinary(
+               EncryptByKey(
+                   Key_GUID(N'FRM_Config_AES256_Key'),
+                   CONVERT(varbinary(max), dbo.ufn_FRM_Base64DecodeToNvarchar(Key_Value)),
+                   1,
+                   Key_Name
+               )
            ),
            Updatedon_Date = COALESCE(Updatedon_Date, GETDATE()),
            Updatedby_user = COALESCE(Updatedby_user, SUSER_SNAME())
      WHERE ISNULL(IsPassword, 0) = 1
        AND Key_Value IS NOT NULL
-       AND Key_Value_Encrypted IS NULL;
+       AND Key_Value NOT LIKE N'ENC:%';
 
     CLOSE SYMMETRIC KEY FRM_Config_AES256_Key;
 
@@ -121,8 +153,10 @@ BEGIN
     SELECT
         Key_Name,
         CASE
-            WHEN ISNULL(IsPassword, 0) = 1 AND Key_Value_Encrypted IS NOT NULL
-                THEN CONVERT(nvarchar(max), DecryptByKey(Key_Value_Encrypted, 1, Key_Name))
+            WHEN ISNULL(IsPassword, 0) = 1 AND Key_Value LIKE N'ENC:%'
+                THEN CONVERT(nvarchar(max), DecryptByKey(dbo.ufn_FRM_Base64DecodeToVarbinary(SUBSTRING(Key_Value, 5, LEN(Key_Value))), 1, Key_Name))
+            WHEN ISNULL(IsPassword, 0) = 1 AND Key_Value IS NOT NULL
+                THEN dbo.ufn_FRM_Base64DecodeToNvarchar(Key_Value)
             ELSE Key_Value
         END AS Key_Value,
         Status,
@@ -155,19 +189,22 @@ BEGIN
     SET XACT_ABORT ON;
 
     DECLARE @EffectiveUser nvarchar(255) = COALESCE(@User_Name, SUSER_SNAME());
-    DECLARE @EncryptedValue varbinary(max) = NULL;
+    DECLARE @EncryptedBytes varbinary(max) = NULL;
+    DECLARE @EncryptedValue nvarchar(max) = NULL;
 
     IF @IsPassword = 1 AND @Key_Value IS NOT NULL
     BEGIN
         OPEN SYMMETRIC KEY FRM_Config_AES256_Key
             DECRYPTION BY CERTIFICATE FRM_Config_DataProtection_Cert;
 
-        SET @EncryptedValue = EncryptByKey(
+        SET @EncryptedBytes = EncryptByKey(
             Key_GUID(N'FRM_Config_AES256_Key'),
             CONVERT(varbinary(max), @Key_Value),
             1,
             @Key_Name
         );
+
+        SET @EncryptedValue = N'ENC:' + dbo.ufn_FRM_Base64EncodeFromVarbinary(@EncryptedBytes);
 
         CLOSE SYMMETRIC KEY FRM_Config_AES256_Key;
     END;
@@ -175,8 +212,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM dbo.FRM_config WHERE Key_Name = @Key_Name)
     BEGIN
         UPDATE dbo.FRM_config
-           SET Key_Value = CASE WHEN @IsPassword = 1 THEN NULL ELSE @Key_Value END,
-               Key_Value_Encrypted = CASE WHEN @IsPassword = 1 THEN @EncryptedValue ELSE NULL END,
+           SET Key_Value = CASE WHEN @IsPassword = 1 THEN @EncryptedValue ELSE @Key_Value END,
                Status = @Status,
                Remarks = @Remarks,
                IsPassword = @IsPassword,
@@ -190,7 +226,6 @@ BEGIN
         (
             Key_Name,
             Key_Value,
-            Key_Value_Encrypted,
             Status,
             Createdby_user,
             Createdon_date,
@@ -202,8 +237,7 @@ BEGIN
         VALUES
         (
             @Key_Name,
-            CASE WHEN @IsPassword = 1 THEN NULL ELSE @Key_Value END,
-            CASE WHEN @IsPassword = 1 THEN @EncryptedValue ELSE NULL END,
+            CASE WHEN @IsPassword = 1 THEN @EncryptedValue ELSE @Key_Value END,
             @Status,
             @EffectiveUser,
             GETDATE(),
@@ -220,19 +254,14 @@ EXEC dbo.usp_FRM_config_MigrateEncodedPasswords;
 GO
 
 SELECT Key_Name, IsPassword,
-       CASE WHEN IsPassword = 1 AND Key_Value_Encrypted IS NOT NULL THEN 'Encrypted' ELSE 'PlainText' END AS StorageState
+    CASE WHEN IsPassword = 1 AND Key_Value LIKE N'ENC:%' THEN 'EncryptedInKeyValue' ELSE 'PlainTextOrLegacyEncoded' END AS StorageState
 FROM dbo.FRM_config
 WHERE ISNULL(IsPassword, 0) = 1;
 GO
 
 /*
-    Recommended after application code has been changed to use dbo.usp_FRM_config_Get
-    and dbo.usp_FRM_config_Save, and after backup validation:
-
-    UPDATE dbo.FRM_config
-       SET Key_Value = NULL
-     WHERE ISNULL(IsPassword, 0) = 1
-       AND Key_Value_Encrypted IS NOT NULL;
+        Recommended after application code has been changed to use dbo.usp_FRM_config_Get
+        and dbo.usp_FRM_config_Save, and after backup validation.
 
     BACKUP CERTIFICATE FRM_Config_DataProtection_Cert
         TO FILE = 'D:\SQLBackups\FRM_Config_DataProtection_Cert.cer'
