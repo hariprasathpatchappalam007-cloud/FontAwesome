@@ -133,10 +133,10 @@ BEGIN
 
     INSERT INTO @Fields (FieldOrder, FieldName, FieldValue, IsRequired, ApplyMinimumLength)
     VALUES
-        (1, N'First Name', @FirstName, 1, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
-        (2, N'Middle Name', @MiddleName, 0, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
-        (3, N'Last Name', @LastName, 1, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
-        (4, N'Full Name', @DerivedFullName, 0, CASE WHEN @IsIndividual = 1 THEN 1 ELSE 0 END);
+        (1, N'First Name', @FirstName, 1, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 0 ELSE 1 END),
+        (2, N'Middle Name', @MiddleName, 0, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 0 ELSE 1 END),
+        (3, N'Last Name', @LastName, 1, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 0 ELSE 1 END),
+        (4, N'Full Name', @DerivedFullName, 0, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 1 ELSE 0 END);
 
     DECLARE
         @FieldOrder INT,
