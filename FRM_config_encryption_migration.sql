@@ -25,7 +25,7 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMasterKey##')
     BEGIN
         /* Change this password before running in production and store it in the bank-approved secret vault. */
-        CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'CHANGE_ME_TO_A_LONG_RANDOM_DEPLOYMENT_SECRET_2026!';
+        CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'dib@hfserviceportal-uat@lms*13579!';
     END;
 
     IF NOT EXISTS (SELECT 1 FROM sys.certificates WHERE name = 'FRM_Config_DataProtection_Cert')
@@ -72,10 +72,7 @@ BEGIN
         'varbinary(max)'
     );
 
-    RETURN COALESCE(
-        CONVERT(nvarchar(max), TRY_CONVERT(varchar(max), @DecodedBytes)),
-        TRY_CONVERT(nvarchar(max), @DecodedBytes)
-    );
+    RETURN CONVERT(nvarchar(max), CONVERT(varchar(max), @DecodedBytes));
 END;
 GO
 
