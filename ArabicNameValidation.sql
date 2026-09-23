@@ -85,7 +85,6 @@ CREATE OR ALTER PROCEDURE dbo.usp_ValidateArabicName
     @FirstName NVARCHAR(200) = NULL,
     @MiddleName NVARCHAR(200) = NULL,
     @LastName NVARCHAR(200) = NULL,
-    @FullName NVARCHAR(600) = NULL,
     @ResidencyType NVARCHAR(50) = NULL,
     @ApplicantType NVARCHAR(50) = NULL
 AS
@@ -101,6 +100,26 @@ BEGIN
 
     DECLARE @NormalizedResidencyType NVARCHAR(50) = LTRIM(RTRIM(ISNULL(@ResidencyType, N'')));
     DECLARE @IsIndividual BIT = CASE WHEN @NormalizedResidencyType IN (N'Resident', N'Non-Resident') THEN 1 ELSE 0 END;
+    DECLARE @DerivedFullName NVARCHAR(600) = N'';
+    DECLARE @FullNamePart NVARCHAR(200);
+
+    SET @FullNamePart = LTRIM(RTRIM(ISNULL(@FirstName, N'')));
+    IF LEN(@FullNamePart) > 0
+    BEGIN
+        SET @DerivedFullName = @FullNamePart;
+    END;
+
+    SET @FullNamePart = LTRIM(RTRIM(ISNULL(@MiddleName, N'')));
+    IF LEN(@FullNamePart) > 0
+    BEGIN
+        SET @DerivedFullName = @DerivedFullName + CASE WHEN LEN(@DerivedFullName) > 0 THEN N' ' ELSE N'' END + @FullNamePart;
+    END;
+
+    SET @FullNamePart = LTRIM(RTRIM(ISNULL(@LastName, N'')));
+    IF LEN(@FullNamePart) > 0
+    BEGIN
+        SET @DerivedFullName = @DerivedFullName + CASE WHEN LEN(@DerivedFullName) > 0 THEN N' ' ELSE N'' END + @FullNamePart;
+    END;
 
     DECLARE @Fields TABLE
     (
@@ -116,7 +135,7 @@ BEGIN
         (1, N'First Name', @FirstName, 1, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
         (2, N'Middle Name', @MiddleName, 0, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
         (3, N'Last Name', @LastName, 1, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
-        (4, N'Full Name', @FullName, 0, 1);
+        (4, N'Full Name', @DerivedFullName, 0, CASE WHEN @IsIndividual = 1 THEN 1 ELSE 0 END);
 
     DECLARE
         @FieldOrder INT,
@@ -259,6 +278,5 @@ GO
     EXEC dbo.usp_ValidateArabicName
         @FirstName = N'هاري',
         @LastName = N'براساث',
-        @FullName = N'هاري براساث',
         @ResidencyType = N'Resident';
 */
