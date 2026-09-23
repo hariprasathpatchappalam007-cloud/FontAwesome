@@ -117,21 +117,21 @@ EXEC dbo.usp_ValidateArabicName
     @ResidencyType = N'Non-Resident-Company';
 GO
 
-PRINT '16 - Resident-Company - invalid pipe character, should return warning with override allowed';
+PRINT '16 - Resident-Company - invalid pipe character, should return IsValid = 0';
 EXEC dbo.usp_ValidateArabicName
     @FirstName = N'شركة السلام | دبي',
     @LastName = N'فرع دبي',
     @ResidencyType = N'Resident-Company';
 GO
 
-PRINT '17 - Resident-Company - invalid English letters, should return warning with override allowed';
+PRINT '17 - Resident-Company - invalid English letters, should return IsValid = 0';
 EXEC dbo.usp_ValidateArabicName
     @FirstName = N'ABC شركة',
     @LastName = N'فرع دبي',
     @ResidencyType = N'Resident-Company';
 GO
 
-PRINT '18 - Non-Resident-Company - invalid exclamation mark, should return warning with override allowed';
+PRINT '18 - Non-Resident-Company - invalid exclamation mark, should return IsValid = 0';
 EXEC dbo.usp_ValidateArabicName
     @FirstName = N'شركة السلام!',
     @LastName = N'فرع دبي',
@@ -173,7 +173,7 @@ EXEC dbo.usp_ValidateArabicName
     @ResidencyType = N'Resident-Company';
 GO
 
-PRINT '24 - Resident-Company - invalid characters in first name only; no separate Full Name invalid-character warning expected';
+PRINT '24 - Resident-Company - invalid characters in first name only; no separate Full Name invalid-character message expected';
 EXEC dbo.usp_ValidateArabicName
     @FirstName = N'شركة السلام!',
     @MiddleName = N'الشرق',

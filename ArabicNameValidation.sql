@@ -95,9 +95,7 @@ BEGIN
     (
         ErrorId INT IDENTITY(1,1) NOT NULL,
         FieldName NVARCHAR(50) NOT NULL,
-        ErrorMessage NVARCHAR(300) NOT NULL,
-        MessageType NVARCHAR(20) NOT NULL DEFAULT (N'Error'),
-        IsOverrideAllowed BIT NOT NULL DEFAULT (0)
+        ErrorMessage NVARCHAR(300) NOT NULL
     );
 
     DECLARE @NormalizedResidencyType NVARCHAR(50) = LTRIM(RTRIM(ISNULL(@ResidencyType, N'')));
@@ -241,8 +239,8 @@ BEGIN
         END
         ELSE IF @IsCompany = 1 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) > 0 AND @HasInvalidNonIndividualCharacter = 1
         BEGIN
-            INSERT INTO @Errors (FieldName, ErrorMessage, MessageType, IsOverrideAllowed)
-            VALUES (@FieldName, @FieldName + N' contains invalid characters', N'Warning', 1);
+            INSERT INTO @Errors (FieldName, ErrorMessage)
+            VALUES (@FieldName, @FieldName + N' contains invalid characters');
         END
         ELSE IF @IsIndividual = 1 AND LEN(@NormalizedValue) > 0 AND EXISTS
         (
@@ -264,14 +262,12 @@ BEGIN
     DEALLOCATE FieldCursor;
 
     SELECT
-        CAST(CASE WHEN EXISTS (SELECT 1 FROM @Errors WHERE MessageType = N'Error') THEN 0 ELSE 1 END AS BIT) AS IsValid;
+        CAST(CASE WHEN EXISTS (SELECT 1 FROM @Errors) THEN 0 ELSE 1 END AS BIT) AS IsValid;
 
     SELECT
         ErrorId,
         FieldName,
-        ErrorMessage,
-        MessageType,
-        IsOverrideAllowed
+        ErrorMessage
     FROM @Errors
     ORDER BY ErrorId;
 END;
