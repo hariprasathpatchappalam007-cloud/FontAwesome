@@ -32,7 +32,7 @@ SELECT
     Source.Code,
     Source.ArabicWord,
     Source.EnglishMeaning,
-    N'Active',
+    N'A',
     N'SYSTEM',
     GETDATE(),
     N'ArabicNameRestrictedWord',
@@ -116,7 +116,7 @@ BEGIN
         (1, N'First Name', @FirstName, 1, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
         (2, N'Middle Name', @MiddleName, 0, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
         (3, N'Last Name', @LastName, 1, CASE WHEN @IsIndividual = 1 THEN 0 ELSE 1 END),
-        (4, N'Full Name', @FullName, CASE WHEN @IsIndividual = 1 THEN 1 ELSE 0 END, CASE WHEN @IsIndividual = 1 THEN 1 ELSE 0 END);
+        (4, N'Full Name', @FullName, 0, 1);
 
     DECLARE
         @FieldOrder INT,
@@ -219,7 +219,7 @@ BEGIN
             SELECT 1
             FROM dbo.FRM_GNARR AS RestrictedWords
             WHERE RestrictedWords.Code = N'ARABIC_NAME_RESTRICTED_WORD'
-              AND ISNULL(RestrictedWords.Status, N'Active') = N'Active'
+              AND ISNULL(RestrictedWords.Status, N'A') = N'A'
               AND CHARINDEX(N' ' + RestrictedWords.Value + N' ', N' ' + @NormalizedValue + N' ') > 0
         )
         BEGIN
@@ -244,3 +244,21 @@ BEGIN
     ORDER BY ErrorId;
 END;
 GO
+
+/*
+    Sample executions.
+    Arabic string literals must use the N prefix, otherwise SQL Server can convert
+    the text through a non-Unicode code page before it reaches the NVARCHAR parameters.
+
+    Valid non-individual example:
+    EXEC dbo.usp_ValidateArabicName
+        @FirstName = N'هاري',
+        @LastName = N'براساث';
+
+    Valid individual example:
+    EXEC dbo.usp_ValidateArabicName
+        @FirstName = N'هاري',
+        @LastName = N'براساث',
+        @FullName = N'هاري براساث',
+        @ResidencyType = N'Resident';
+*/
