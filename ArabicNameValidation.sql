@@ -148,7 +148,8 @@ BEGIN
         @CurrentCode INT,
         @HasArabic BIT,
         @HasInvalidIndividualCharacter BIT,
-        @HasInvalidNonIndividualCharacter BIT;
+        @HasInvalidNonIndividualCharacter BIT,
+        @ArabicCharacterCount INT;
 
     DECLARE FieldCursor CURSOR LOCAL FAST_FORWARD FOR
         SELECT FieldOrder, FieldName, FieldValue, IsRequired, ApplyMinimumLength
@@ -176,6 +177,7 @@ BEGIN
         SET @HasArabic = 0;
         SET @HasInvalidIndividualCharacter = 0;
         SET @HasInvalidNonIndividualCharacter = 0;
+        SET @ArabicCharacterCount = 0;
 
         WHILE @CharacterIndex <= LEN(@NormalizedValue)
         BEGIN
@@ -184,6 +186,7 @@ BEGIN
             IF @CurrentCode BETWEEN 1536 AND 1791
             BEGIN
                 SET @HasArabic = 1;
+                SET @ArabicCharacterCount += 1;
             END
             ELSE IF @CurrentCode <> 32
             BEGIN
@@ -218,7 +221,12 @@ BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' is invalid');
         END
-        ELSE IF @ApplyMinimumLength = 1 AND LEN(@NormalizedValue) > 0 AND LEN(@NormalizedValue) < 4
+        ELSE IF @ApplyMinimumLength = 1 AND LEN(@NormalizedValue) > 0 AND @FieldName = N'Full Name' AND @ArabicCharacterCount <= 4
+        BEGIN
+            INSERT INTO @Errors (FieldName, ErrorMessage)
+            VALUES (@FieldName, @FieldName + N' must be more than 4 Arabic characters');
+        END
+        ELSE IF @ApplyMinimumLength = 1 AND LEN(@NormalizedValue) > 0 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) < 4
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' must be at least 4 characters');
