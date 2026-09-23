@@ -207,7 +207,7 @@ BEGIN
             SET @CharacterIndex += 1;
         END;
 
-        IF ISNULL(@OriginalValue, N'') <> @NormalizedValue
+        IF @FieldName <> N'Full Name' AND ISNULL(@OriginalValue, N'') <> @NormalizedValue
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' should not have leading or trailing spaces or consecutive spaces');
@@ -217,7 +217,7 @@ BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' is required');
         END
-        ELSE IF LEN(@NormalizedValue) > 0 AND @HasArabic = 0
+        ELSE IF @FieldName <> N'Full Name' AND LEN(@NormalizedValue) > 0 AND @HasArabic = 0
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' is invalid');
@@ -232,7 +232,7 @@ BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' must be at least 4 characters');
         END
-        ELSE IF @IsIndividual = 1 AND LEN(@NormalizedValue) > 0 AND @HasInvalidIndividualCharacter = 1
+        ELSE IF @IsIndividual = 1 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) > 0 AND @HasInvalidIndividualCharacter = 1
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' must contain only Arabic letters');
@@ -242,7 +242,7 @@ BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' contains invalid characters');
         END
-        ELSE IF @IsIndividual = 1 AND LEN(@NormalizedValue) > 0 AND EXISTS
+        ELSE IF @IsIndividual = 1 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) > 0 AND EXISTS
         (
             SELECT 1
             FROM dbo.FRM_GNARR AS RestrictedWords
