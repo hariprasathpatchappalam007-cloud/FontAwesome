@@ -20,6 +20,20 @@ GO
 SET NOCOUNT ON;
 GO
 
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.columns c
+    INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+    WHERE c.object_id = OBJECT_ID(N'dbo.FRM_config')
+      AND c.name = N'Key_Value'
+      AND (t.name <> N'nvarchar' OR c.max_length <> -1)
+)
+BEGIN
+    ALTER TABLE dbo.FRM_config ALTER COLUMN Key_Value nvarchar(max) NULL;
+END;
+GO
+
 BEGIN TRY
     BEGIN TRANSACTION;
 
@@ -126,8 +140,7 @@ BEGIN
                    Key_Name
                )
            ),
-           Updatedon_Date = COALESCE(Updatedon_Date, GETDATE()),
-           Updatedby_user = COALESCE(Updatedby_user, SUSER_SNAME())
+                     Updatedon_Date = COALESCE(Updatedon_Date, GETDATE())
      WHERE ISNULL(IsPassword, 0) = 1
        AND Key_Value IS NOT NULL
        AND Key_Value NOT LIKE N'ENC:%';
