@@ -133,9 +133,9 @@ BEGIN
 
     INSERT INTO @Fields (FieldOrder, FieldName, FieldValue, IsRequired, ApplyMinimumLength)
     VALUES
-        (1, N'First Name', @FirstName, 1, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 0 ELSE 1 END),
-        (2, N'Middle Name', @MiddleName, 0, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 0 ELSE 1 END),
-        (3, N'Last Name', @LastName, 1, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 0 ELSE 1 END),
+        (1, N'First Name', @FirstName, 1, 0),
+        (2, N'Middle Name', @MiddleName, 0, 0),
+        (3, N'Last Name', @LastName, 1, 0),
         (4, N'Full Name', @DerivedFullName, 0, CASE WHEN @IsIndividual = 1 OR @IsCompany = 1 THEN 1 ELSE 0 END);
 
     DECLARE
@@ -222,15 +222,10 @@ BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' is invalid');
         END
-        ELSE IF @ApplyMinimumLength = 1 AND LEN(@NormalizedValue) > 0 AND @FieldName = N'Full Name' AND @ArabicCharacterCount <= 4
+        ELSE IF @ApplyMinimumLength = 1 AND LEN(@NormalizedValue) > 0 AND @FieldName = N'Full Name' AND @ArabicCharacterCount < 4
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
-            VALUES (@FieldName, @FieldName + N' must be more than 4 Arabic characters');
-        END
-        ELSE IF @ApplyMinimumLength = 1 AND LEN(@NormalizedValue) > 0 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) < 4
-        BEGIN
-            INSERT INTO @Errors (FieldName, ErrorMessage)
-            VALUES (@FieldName, @FieldName + N' must be at least 4 characters');
+            VALUES (@FieldName, @FieldName + N' must be at least 4 Arabic characters');
         END
         ELSE IF @IsIndividual = 1 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) > 0 AND @HasInvalidIndividualCharacter = 1
         BEGIN
