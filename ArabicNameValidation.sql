@@ -95,11 +95,14 @@ BEGIN
     (
         ErrorId INT IDENTITY(1,1) NOT NULL,
         FieldName NVARCHAR(50) NOT NULL,
-        ErrorMessage NVARCHAR(300) NOT NULL
+        ErrorMessage NVARCHAR(300) NOT NULL,
+        MessageType NVARCHAR(20) NOT NULL DEFAULT (N'Error'),
+        IsOverrideAllowed BIT NOT NULL DEFAULT (0)
     );
 
     DECLARE @NormalizedResidencyType NVARCHAR(50) = LTRIM(RTRIM(ISNULL(@ResidencyType, N'')));
     DECLARE @IsIndividual BIT = CASE WHEN @NormalizedResidencyType IN (N'Resident', N'Non-Resident') THEN 1 ELSE 0 END;
+    DECLARE @IsCompany BIT = CASE WHEN @NormalizedResidencyType IN (N'Resident-Company', N'Non-Resident-Company') THEN 1 ELSE 0 END;
     DECLARE @DerivedFullName NVARCHAR(600) = N'';
     DECLARE @FullNamePart NVARCHAR(200);
 
@@ -197,7 +200,7 @@ BEGIN
             (
                 @CurrentCode BETWEEN 1536 AND 1791
                 OR @CurrentCode BETWEEN 48 AND 57
-                OR @CurrentCode IN (32, 38, 39, 40, 41, 44, 45, 46, 47, 60, 62, 64, 92, 95, 124)
+                OR @CurrentCode IN (32, 38, 39, 40, 41, 44, 45, 46, 47, 60, 62, 64, 92, 95)
             )
             BEGIN
                 SET @HasInvalidNonIndividualCharacter = 1;
@@ -236,10 +239,10 @@ BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' must contain only Arabic letters');
         END
-        ELSE IF @IsIndividual = 0 AND LEN(@NormalizedValue) > 0 AND @HasInvalidNonIndividualCharacter = 1
+        ELSE IF @IsCompany = 1 AND @FieldName <> N'Full Name' AND LEN(@NormalizedValue) > 0 AND @HasInvalidNonIndividualCharacter = 1
         BEGIN
-            INSERT INTO @Errors (FieldName, ErrorMessage)
-            VALUES (@FieldName, @FieldName + N' contains invalid characters');
+            INSERT INTO @Errors (FieldName, ErrorMessage, MessageType, IsOverrideAllowed)
+            VALUES (@FieldName, @FieldName + N' contains invalid characters', N'Warning', 1);
         END
         ELSE IF @IsIndividual = 1 AND LEN(@NormalizedValue) > 0 AND EXISTS
         (
@@ -261,12 +264,14 @@ BEGIN
     DEALLOCATE FieldCursor;
 
     SELECT
-        CAST(CASE WHEN EXISTS (SELECT 1 FROM @Errors) THEN 0 ELSE 1 END AS BIT) AS IsValid;
+        CAST(CASE WHEN EXISTS (SELECT 1 FROM @Errors WHERE MessageType = N'Error') THEN 0 ELSE 1 END AS BIT) AS IsValid;
 
     SELECT
         ErrorId,
         FieldName,
-        ErrorMessage
+        ErrorMessage,
+        MessageType,
+        IsOverrideAllowed
     FROM @Errors
     ORDER BY ErrorId;
 END;
