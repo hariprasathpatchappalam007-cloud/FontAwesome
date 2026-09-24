@@ -60,6 +60,26 @@ namespace Application.Security
             return ValidateText(GetControlValue(control));
         }
 
+        public SqlInjectionValidationResult ValidateControls(params object[] controls)
+        {
+            if (controls == null || controls.Length == 0)
+            {
+                return SqlInjectionValidationResult.Success();
+            }
+
+            foreach (object control in controls)
+            {
+                SqlInjectionValidationResult result = ValidateControl(control);
+
+                if (!result.IsValid)
+                {
+                    return result;
+                }
+            }
+
+            return SqlInjectionValidationResult.Success();
+        }
+
         public SqlInjectionValidationResult ValidateText(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
