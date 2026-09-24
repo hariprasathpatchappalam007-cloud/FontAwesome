@@ -207,7 +207,11 @@ BEGIN
             SET @CharacterIndex += 1;
         END;
 
-        IF @FieldName <> N'Full Name' AND ISNULL(@OriginalValue, N'') <> @NormalizedValue
+          IF @FieldName <> N'Full Name'
+              AND (
+                     ISNULL(@OriginalValue, N'') <> @NormalizedValue
+                     OR DATALENGTH(ISNULL(@OriginalValue, N'')) <> DATALENGTH(@NormalizedValue)
+              )
         BEGIN
             INSERT INTO @Errors (FieldName, ErrorMessage)
             VALUES (@FieldName, @FieldName + N' should not have leading or trailing spaces or consecutive spaces');
