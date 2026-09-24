@@ -1,14 +1,12 @@
-Dear Sathish,
+SqlInjectionValidationResult result = guard.ValidateControls(
+    txtCustomerName,
+    txtAddress,
+    txtMobileNo,
+    ddlStatus,
+    dtFromDate
+);
 
-Let us stick to the scope of DMGT-253.
-
-The requirement is to pass the Takaful rate to T24 during contract booking through the Contract Booking Service. Internally, a new SOA–T24 API for Takaful calculation will be developed by the SOA and T24 teams.
-
-For after-sales automation, it was recommended to expose the same newly developed API to HFLMS for Takaful recalculation based on the revised rates.
-
-The current discussion seems to be moving towards reusing other APIs in HFLMS, which is not part of the DMGT-253 requirement.
-
-Could you please keep the discussion within the DMGT-253 scope?
-
-Regards,
-Hari
+if (!result.IsValid)
+{
+    throw new ApplicationException(result.Message);
+}
