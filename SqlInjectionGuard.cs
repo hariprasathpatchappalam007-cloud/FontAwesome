@@ -17,11 +17,11 @@ namespace Application.Security
             Message = message;
         }
 
-        public bool IsValid { get; }
+        public bool IsValid { get; private set; }
 
-        public string MatchedToken { get; }
+        public string MatchedToken { get; private set; }
 
-        public string Message { get; }
+        public string Message { get; private set; }
 
         public static SqlInjectionValidationResult Success()
         {
@@ -43,13 +43,13 @@ namespace Application.Security
 
         private readonly string _connectionString;
         private readonly object _syncRoot = new object();
-        private IReadOnlyList<string> _activeTokens;
+        private string[] _activeTokens;
 
         public SqlInjectionGuard(string connectionString)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                throw new ArgumentException("Connection string is required.", nameof(connectionString));
+                throw new ArgumentException("Connection string is required.", "connectionString");
             }
 
             _connectionString = connectionString;
@@ -88,7 +88,7 @@ namespace Application.Security
             }
         }
 
-        private IReadOnlyList<string> GetActiveTokens()
+        private string[] GetActiveTokens()
         {
             if (_activeTokens != null)
             {
@@ -106,7 +106,7 @@ namespace Application.Security
             return _activeTokens;
         }
 
-        private IReadOnlyList<string> LoadActiveTokens()
+        private string[] LoadActiveTokens()
         {
             List<string> tokens = new List<string>();
 
@@ -159,7 +159,9 @@ namespace Application.Security
                 return null;
             }
 
-            if (control is string text)
+            string text = control as string;
+
+            if (text != null)
             {
                 return text;
             }
