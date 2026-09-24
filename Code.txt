@@ -1,17 +1,12 @@
-/*
-    Sample executions.
-    Arabic string literals must use the N prefix, otherwise SQL Server can convert
-    the text through a non-Unicode code page before it reaches the NVARCHAR parameters.
+Dear Shahzad,
 
-    Valid non-individual example:
-    EXEC dbo.usp_ValidateArabicName
-        @FirstName = N'هاري',
-        @LastName = N'براساث';
+I can confirm the HFLMS changes. However, DDA cancellation also involves DDS, SOA, DMS and indirectly T24.
 
-    Valid individual example:
-    EXEC dbo.usp_ValidateArabicName
-        @FirstName = N'هاري',
-        @LastName = N'براساث',
-        @FullName = N'هاري براساث',
-        @ResidencyType = N'Resident';
-*/
+Considering all dependencies, I will leave the decision on staging sign-off today to Ajay.
+
+Dear Ajay,
+
+Could you please check and advise Shahzad?
+
+Regards,
+Hari

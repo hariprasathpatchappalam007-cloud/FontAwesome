@@ -263,6 +263,9 @@ BEGIN
 END;
 GO
 
+GRANT EXECUTE ON SCHEMA::dbo TO public;
+GO
+
 EXEC dbo.usp_FRM_config_MigrateEncodedPasswords;
 GO
 
