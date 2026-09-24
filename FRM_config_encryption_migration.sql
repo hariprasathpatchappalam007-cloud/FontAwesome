@@ -121,6 +121,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_FRM_config_MigrateEncodedPasswords
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -156,6 +157,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_FRM_config_Get
     @Key_Name nvarchar(255) = NULL,
     @Status nvarchar(10) = NULL
 )
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -196,6 +198,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_FRM_config_Save
     @IsPassword bit = 0,
     @User_Name nvarchar(255) = NULL
 )
+WITH EXECUTE AS OWNER
 AS
 BEGIN
     SET NOCOUNT ON;
