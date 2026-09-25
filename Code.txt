@@ -1,12 +1,16 @@
-SqlInjectionValidationResult result = guard.ValidateControls(
-    txtCustomerName,
-    txtAddress,
-    txtMobileNo,
-    ddlStatus,
-    dtFromDate
-);
-
-if (!result.IsValid)
+protected void Logout_Click(object sender, EventArgs e)
 {
-    throw new ApplicationException(result.Message);
+    FormsAuthentication.SignOut();
+
+    Session.Clear();
+    Session.Abandon();
+
+    Response.Cookies.Add(new HttpCookie("ASP.NET_SessionId", "")
+    {
+        Expires = DateTime.Now.AddDays(-1),
+        HttpOnly = true,
+        Secure = Request.IsSecureConnection
+    });
+
+    Response.Redirect("~/LoggedOut.aspx", true);
 }
