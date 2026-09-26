@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+
+  <appSettings>
+    <add key="SERVERNAME" value="10.224.3.13" />
+    <add key="DATABASE" value="lms_sit" />
+    <!-- <add key="DATABASE" value="LMS_STAGING" /> -->
+    <add key="PUBLIC_SERVERNAME" value="DXB01-VWU-LMSA1" />
+    <add key="Licence_To" value="DIB" />
+    <add key="Licence_NO_USER" value="120" />
+    <add key="Licence_Key" value="271PS2H6Z-4YJDCGFYW-HW8XV28K" />
+
+    <add key="Environment" value="DEV" />
+    <add key="ConnectionString" value="server=10.224.3.13;database=lms_sit;trusted_connection=false; User Id=hariprasath.p; Password=Laptop@123; Connect Timeout=120;" />
+  </appSettings>
+
+  <connectionStrings>
+    <remove name="LocalSqlServer" />
+  </connectionStrings>
+
+  <system.web>
+    <!-- <trace enabled="true" /> -->
+
+    <identity impersonate="true" />
+
+    <compilation debug="true" />
+    <authentication mode="Windows" />
+
+    <!-- Production uses executionTimeout="90". Keep other UAT httpRuntime values unchanged. -->
+    <httpRuntime requestValidationMode="2.0" executionTimeout="90" maxRequestLength="40000" useFullyQualifiedRedirectUrl="false" minFreeThreads="8" minLocalRequestFreeThreads="4" appRequestQueueLimit="100" />
+    <customErrors mode="Off" />
+
+    <!--
+      Intentionally no <sessionState> section.
+      This matches production configuration.txt and lets ASP.NET use default session behavior:
+      InProc session, cookie-based session ID, 20 minute timeout.
+    -->
+  </system.web>
+
+  <system.webServer>
+    <!-- Keep this UAT setting because removing it can cause IIS integrated pipeline 500 errors in some legacy apps. -->
+    <validation validateIntegratedModeConfiguration="false" />
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="Default.aspx" />
+        <add value="Login.aspx" />
+      </files>
+    </defaultDocument>
+  </system.webServer>
+
+</configuration>
