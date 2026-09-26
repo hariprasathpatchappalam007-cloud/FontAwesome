@@ -25,17 +25,6 @@
 
     <httpRuntime requestValidationMode="2.0" executionTimeout="90" maxRequestLength="40000" useFullyQualifiedRedirectUrl="false" minFreeThreads="8" minLocalRequestFreeThreads="4" appRequestQueueLimit="100" />
     <customErrors mode="Off" />
-
-    <!--
-      Production does not define <sessionState>, so ASP.NET uses defaults:
-      mode="InProc", cookieless="UseCookies", timeout="20".
-
-      This explicit equivalent is included in UAT so the intended production behavior is visible
-      and UAT no longer uses its previous timeout="240" setting.
-    -->
-    <sessionState mode="InProc"
-                  cookieless="UseCookies"
-                  timeout="20" />
   </system.web>
 
   <system.webServer>
